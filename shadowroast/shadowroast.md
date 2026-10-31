@@ -29,7 +29,7 @@ index=shadowroast log.file.path=*sysmon* event.code=22 QueryName IN (*office-pc*
 
 ### 1.1 Process tạo ra bởi user
 
-Ta sẽ bắt đầu điều tra từ Sysmon Event 1 (tạo process) trên Office-PC, vì máy trạm nhân viên được phép ra Internet nên thường là điểm xâm nhập đầu tiên (phishing, file độc hại tải từ Internet...). DC và file server chỉ hoạt động nội bộ, attacker thường chiếm máy trạm rồi mới lateral movement sang các host khác trong mạng nội bộ.
+Ta sẽ bắt đầu điều tra từ Sysmon Event 1 (tạo process) trên Office-PC, vì máy trạm nhân viên có khả năng truy cập Internet nên thường là điểm xâm nhập đầu tiên (phishing, file độc hại tải từ Internet...). DC và file server chỉ hoạt động nội bộ, attacker thường chiếm máy trạm rồi mới lateral movement sang các host khác trong mạng nội bộ.
 
 ```spl
 index=shadowroast source="C:\\Logs\\Office-PC.ndjson" log.file.path="C:\\Logs_6782387492\\Microsoft-Windows-Sysmon%4Operational.evtx" event.code=1
@@ -202,7 +202,7 @@ index=shadowroast source="C:\\Logs\\DC01.ndjson" earliest="08/06/2024:01:10:45" 
 ![](images/image5.png)
 
 
-Sau khi thực hiện AS-REP roasting, attacker thường xin TGT cho nhiều account nhưng chỉ dùng tiếp tài khoản nào crack thành công. Ở đây chỉ `tcooper` xin service ticket (7 event, 2024-08-06 01:13:28 → 2024-08-06 01:18:10): `OFFICE-PC$` (2024-08-06 01:13:28), `DC01$` (2024-08-06 01:13:28, 2024-08-06 01:15:21, 2024-08-06 01:18:10), `FILESERVER$` (2024-08-06 01:17:01). Điều này chứng tỏ tcooper đã bị crack thành công.
+Sau khi thực hiện AS-REP roasting, attacker thường xin TGT cho nhiều account nhưng chỉ dùng tiếp tài khoản nào crack thành công. Ở đây chỉ `tcooper` xin service ticket (7 event, 2024-08-06 01:13:28 → 2024-08-06 01:18:10): `OFFICE-PC$` (2024-08-06 01:13:28), `DC01$` (2024-08-06 01:13:28, 2024-08-06 01:15:21, 2024-08-06 01:18:10), `FILESERVER$` (2024-08-06 01:17:01). Hoạt động trong log quan sát thấy sau đó cho thấy tài khoản tcooper đã bị crack thành công và lạm dụng để thực hiện các hành động không mong muốn.
 
 #### Leo thang đặc quyền lên SYSTEM
 
@@ -270,7 +270,7 @@ index=shadowroast source="C:\\Logs\\Office-PC.ndjson" earliest="08/06/2024:01:13
 ![](images/image21.png)
 
 
-Trong khoảng thời gian khi các process trên được thực thi, ghi nhận event 4648 (logon sử dụng 1 tài khoản khác với tài khoản hiện tại) trên office-pc với tài khoản hiện tại là sanderson (logon id 0xC4220) còn tài khoản khác được sử dụng là tcooper. Phiên logon này được thực hiện trên chính máy office-pc (target server = localhost). Ngay sau đó, mimikatz được khởi chạy dưới context của user tcooper trên office-pc. Attacker đã chuyển sang sử dụng tài khoản của user tcooper.
+Trong khoảng thời gian khi các process trên được thực thi, ghi nhận event 4648 (logon sử dụng 1 tài khoản khác với tài khoản hiện tại) trên office-pc với tài khoản hiện tại là sanderson (logon id 0xC4220) còn tài khoản khác được sử dụng là tcooper. Phiên logon này được thực hiện trên chính máy office-pc (target server = localhost). Ngay sau đó, mimikatz được khởi chạy dưới context của user tcooper trên office-pc. Attacker đã chuyển sang sử dụng tài khoản của user tcooper và bản thân tài khoản này có quyền quản trị nên được gán các privileges đặc biệt.
 
 Hoạt động của process PowerShell (5784):
 
@@ -443,7 +443,7 @@ if (([System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((bs
 
 ![](images/image41.png)
 
-Đoạn shellcode này thực hiện kết nối tới 223.246.47.74:443 và nhận dữ liệu trả về, rồi gọi VirtualAlloc rồi tiếp tục gọi recv nhận dữ liệu, nhiều khả năng đây là 1 reverse-shell stub
+Đoạn shellcode này thực hiện kết nối tới 223.247.47.74:443 và nhận dữ liệu trả về, rồi gọi VirtualAlloc rồi tiếp tục gọi recv nhận dữ liệu, nhiều khả năng đây là 1 reverse-shell stub
 
 ## Host 2: DC01 (10.0.0.147)
 
@@ -570,7 +570,7 @@ Process 6948 tạo `C:\Users\Default\AppData\Local\Temp\CrashDump.zip` vào lúc
 | Stealth | T1036.005 Masquerading: Match Legitimate Resource Name or Location | `AdobeUpdater.exe`, `BackupUtility.exe`, `DefragTool.exe`, `SystemDiagnostics.ps1`, `CrashDump.zip` |
 | Stealth | T1027.011 Fileless Storage, T1027 Obfuscated Files | Giấu payload trong `HKCU:Software\EdI86bhr`, payload bị obfuscate nhiều tầng |
 | Defense Impairment | T1686.003 Disable or Modify System Firewall: Windows Host Firewall  | `netsh firewall set service remotedesktop/remoteadmin enable` |
-| Defense Evasion | T1112 Modify Registry | Run key, `fDenyTSConnections = 0` |
+| Defense Impairment | T1112 Modify Registry | `fDenyTSConnections = 0` |
 | Credential Access | T1558.004 AS-REP Roasting | Rubeus `asreproast` |
 | Credential Access | T1110.002 Password Cracking | rubeus: format:hashcat  |
 | Discovery | T1087.002, T1069.002, T1615 | PowerView |
