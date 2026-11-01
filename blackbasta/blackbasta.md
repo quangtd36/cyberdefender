@@ -184,7 +184,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 
 ![PowerShell PID 8684 tạo F6w1S48.vbs](images/image10.png)
 
-Event 11 chỉ ghi nhận process cmd.exe với PID 8684 thành công drop F6w1S48.vbs lúc 2025-03-21 15:15:28. Hai process cmd.exe (PID 11268 và 8600) spawn ra trước đó đều thất bại vì thừa dấu backtick (`) ở cuối
+Event id 11 chỉ ghi nhận process cmd.exe với PID 8684 thành công drop F6w1S48.vbs lúc 2025-03-21 15:15:28. Hai process cmd.exe (PID 11268 và 8600) spawn ra trước đó đều thất bại vì thừa dấu backtick (`) ở cuối
 
 Một dấu vết khác nằm trong registry của Excel:
 
@@ -206,7 +206,7 @@ index=main host=WS1 EventCode IN (4624, 4672) 0x10d103f
 
 ![alt text](images/image.png)
 
-Log chưa cho thông tin Event ID 4624/4672 gắn với phiên login 0x10d103f (phiên login xảy ra sự cố), nên chưa xác định đầy đủ nguồn gốc phiên này.
+Log chưa cho thông tin Event id 4624/4672 gắn với phiên login 0x10d103f (phiên login xảy ra sự cố), nên chưa xác định đầy đủ nguồn gốc phiên này.
 
 ```spl
 index=main source="XmlWinEventLog:Security" host=WS1 EventCode=4627 knixon
@@ -216,7 +216,7 @@ index=main source="XmlWinEventLog:Security" host=WS1 EventCode=4627 knixon
 
 ![Group membership của knixon trong một phiên đăng nhập khác](images/image7.png)
 
-Tuy nhiên, ổ một phiên logon khác của user knixon, Event 4627 (Group membership information - event ghi lại toàn bộ group mà 1 user thuộc về sau khi login thành công) cung cấp thông tin về các group mà user này là thành viên, trong đó bao gồm FINANCEES\Domain Admins và BUILTIN\Administrators 
+Tuy nhiên, ở một phiên logon khác của user knixon, Event id 4627 (Group membership information - event ghi lại toàn bộ group mà 1 user thuộc về sau khi login thành công) cung cấp thông tin về các group mà user này là thành viên, trong đó bao gồm FINANCEES\Domain Admins và BUILTIN\Administrators 
 
 ### 1.4 Process WScript.exe (PID = 1848) – khởi chạy tệp F6w1S48.vbs vào 2025-03-21 15:15:29
 
@@ -337,7 +337,7 @@ index=main host=WS1 earliest="03/21/2025:15:15:00" EventCode=4698
 ```
 
 ![alt text](images/image-9.png)
-Chưa ghi nhận task WiindowsUpdate được ghi nhận tạo thành công bởi event 4698 
+Chưa ghi nhận task WiindowsUpdate được ghi nhận tạo thành công bởi event id 4698 
 
 ```spl
 index=main host=WS1 source="XmlWinEventLog:Microsoft-Windows-Windows Defender/Operational"
@@ -389,7 +389,7 @@ Spawn ra các process thực hiện Discovery:
 
 ### 1.7 Process Pancake.jpg.exe (PID = 10292) - khởi chạy lúc 15:15:3 với IntegrityLevel = High
 
-Lúc 2025-03-21 15:23:21, Pancake.jpg.exe được khởi chạy lần nữa với PID = 10292, lần này chạy ở IntegrityLevel = High tức thừa hưởng elevated token từ phiên login của user knixon. Process tree lúc trước cho biết parent của process này là explorer.exe, dấu hiệu cho thấy nó được thực thi thông qua GUI. Giả thuyết ở đây là user bị đánh lừa bởi bề ngoài hiển thi của tệp, 1 ảnh jpg, click vào binary ngụy trang, cửa sổ UAC hiện lên và user click yes cho phép process chạy với elevated token
+Lúc 2025-03-21 15:23:21, Pancake.jpg.exe được khởi chạy lần nữa với PID = 10292, lần này chạy ở IntegrityLevel = High tức thừa hưởng elevated token từ phiên login của user knixon. Process tree lúc trước cho biết parent của process này là explorer.exe, dấu hiệu cho thấy nó được thực thi thông qua GUI. Giả thuyết ở đây là user bị đánh lừa bởi bề ngoài hiển thị của tệp, 1 ảnh jpg, click vào binary ngụy trang, cửa sổ UAC hiện lên và user click yes cho phép process chạy với elevated token
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:23:00" process_id=6320 EventCode=3

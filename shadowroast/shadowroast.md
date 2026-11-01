@@ -556,7 +556,7 @@ Process 6948 tạo `C:\Users\Default\AppData\Local\Temp\CrashDump.zip` vào lúc
 
 ---
 
-# Mitre attck
+# Mitre att&ck
 
 | Tactic | Technique | Bằng chứng |
 |---|---|---|
