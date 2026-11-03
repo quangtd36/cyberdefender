@@ -249,6 +249,7 @@ Thống kê các event sysmon liên quan đến process này trong khoảng th�
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" process_id=1848 EventCode=3
 | table _time SourceIp SourcePort DestinationIp DestinationPort
 ```
+![alt text](./images/c2.png)
 
 Vào 2025-03-21 15:15:31,  ghi nhận Wscript.exe (1848) thực hiện kết nối tới external IP là 54.93.105.22 trên port 80 (giao thức HTTP) nhằm trà trộn vào traffic thông thường
 
@@ -681,6 +682,7 @@ index=main "998022B70D83C6DE68E5BDF94E0F8D71" OR "7883F01096DB9BCF090C2317749B68
 ```
 
 ![alt text](images/image-36.png)
+
 Chỉ ghi nhận hoạt động của ransomware trên DC01. Log process trước đó trên WS1 cũng không cho thấy process ransomware nào.
 #### Phiên RDP của user swhite 
 
