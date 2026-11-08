@@ -1406,14 +1406,14 @@ Beacon rundll32.exe (2436) spawn chạy các lệnh (tất cả chạy dưới d
 | Discovery | T1016 – System Network Configuration Discovery | Lệnh ipconfig /all được thực thi trên PAYOPS-WS-04 lúc 2026-04-20 23:31:55 để thu thập thông tin cấu hình mạng |
 | Discovery | T1087.002 – Account Discovery: Domain Account | Attacker sử dụng net user /domain để liệt kê các tài khoản thuộc domain NEXTGEN |
 | Discovery | T1069.002 – Permission Groups Discovery: Domain Groups | Attacker thực thi net group "Domain Admins" /domain và net group "Domain Computers" /domain để liệt kê thành viên các nhóm trong domain |
-| Discovery | T1007 – System Service Discovery | Attacker thực thi wmic service get name,pathname,startmode \| findstr /i "DataSync" để xác định cấu hình service DataSyncPro trước khi khai thác Unquoted Service Path |
+| Discovery | T1007 – System Service Discovery | Attacker thực thi wmic service get name,pathname,startmode \| findstr /i "DataSync" để xác định cấu hình service DataSyncPro trước khi khai thác unquoted service path |
 | Discovery | T1018 – Remote System Discovery | Attacker thực thi net view /domain:NEXTGEN, nltest /dclist:NEXTGEN và ping -n 1 BCHAIN-WS-11 nhằm tìm kiếm và kiểm tra khả năng tiếp cận các host nội bộ |
 | Discovery | T1057 – Process Discovery | Attacker sử dụng tasklist \| findstr svc_update để kiểm tra liệu payload svc_update.exe đã được khởi chạy hay chưa |
 | Execution / Stealth | T1574.009 – Hijack Execution Flow: Path Interception by Unquoted Path | Attacker khai thác lỗ hổng unquoted service path của service DataSyncPro  |
 | Execution | T1569.002 – System Services: Service Execution | Attacker khai thác DataSyncPro để thực thi payload. Ngoài ra, trên COMP-FS-01 và BCHAIN-WS-11, event id 7045 cùng các event process creation ghi nhận việc tạo và thực thi các service độc hại |
-| Stealth / Privilege Escalation | T1055 – Process Injection | Trên PAYOPS-WS-04, Sysmon event id 8 và 10 ghi nhận rundll32.exe (5328) truy cập lsass.exe với quyền cao và tạo remote thread trong process này, phù hợp với hành vi process injection |
+| Stealth / Privilege Escalation | T1055 – Process Injection | Trên PAYOPS-WS-04, sysmon event id 8 và 10 ghi nhận rundll32.exe (5328) truy cập lsass.exe với quyền cao và tạo remote thread trong process này, dấu hiệu của hành vi process injection |
 | Credential Access | T1003.001 – OS Credential Dumping: LSASS Memory | Các process rundll32.exe (5328, 6008, 9472, 7004) truy cập bộ nhớ lsass.exe với các access mask 0x1010 |
-| Lateral Movement | T1078.002 – Valid Accounts: Domain Accounts | Event ID 4624 Logon Type 3 trên COMP-FS-01 ghi nhận xác thực NTLM thành công từ PAYOPS-WS-04 bằng tài khoản k.mostafa.admin. Sau đó ghi nhận hoạt động remote service execution. |
+| Lateral Movement | T1078.002 – Valid Accounts: Domain Accounts | Event ID 4624 Logon Type 3 trên COMP-FS-01 ghi nhận xác thực NTLM thành công từ PAYOPS-WS-04 bằng tài khoản k.mostafa.admin. Sau đó ghi nhận hoạt động remote service execution |
 | Lateral Movement | T1550.002 – Use Alternate Authentication Material: Pass the Hash | Attacker dùng Pass-the-Hash để xác thực và tạo service độc hại trên các host |
 | Lateral Movement | T1021.002 – Remote Services: SMB/Windows Admin Shares | Các service độc hại được đặt vào ADMIN\$ share |
 | Persistence / Privilege Escalation | T1543.003 – Create or Modify System Process: Windows Service | Attacker cài đặt service độc hại trên COMP-FS-01 và BCHAIN-WS-11 |
@@ -1422,8 +1422,8 @@ Beacon rundll32.exe (2436) spawn chạy các lệnh (tất cả chạy dưới d
 | Stealth | T1036.005 – Masquerading: Match Legitimate Resource Name or Location | Payload cptchbuild.bin được đổi tên thành svc_update.exe; vodkastealer_emulator.ps1 được đổi tên thành svc_update.ps1, nhằm giả mạo thành trình cập nhật hợp lệ |
 | Discovery | T1614.001 – System Location Discovery: System Language Discovery | Hàm Invoke-PreFlightChecks của VodkaStealer kiểm tra keyboard layout liên quan đến Nga/Belarus |
 | Credential Access | T1555.003 – Credentials from Password Stores: Credentials from Web Browsers | Nội dung hàm Invoke-DataCollection cho thấy VodkaStealer nhắm tới dữ liệu trình duyệt, bao gồm các tệp cơ sở dữ liệu có thể chứa credentials, ví dụ: tệp "Login Data" |
-| Collection | T1113 – Screen Capture | PowerShell Event ID 4104 cho thấy VodkaStealer có chức năng thu thập screenshot và lưu kết quả dưới tên screenshot.png. Đây là khả năng xác định từ mã script; cần file artefact để xác nhận screenshot thực sự được tạo. |
-| Collection | T1005 – Data from Local System | Hàm Invoke-DataCollection được thiết kế để thu thập system information, installed software, dữ liệu trình duyệt và các tệp liên quan đến ví tiền điện tử từ máy bị nhiễm. Sysmon Event ID 11 ghi nhận các artefact được tạo trong staging directory. |
+| Collection | T1113 – Screen Capture | Hàm Invoke-DataCollection của VodkaStealer thực hiện capture màn hình và lưu kết quả dưới tên screenshot.png |
+| Collection | T1005 – Data from Local System | Hàm Invoke-DataCollection thực hiện thu thập system information, installed software, dữ liệu trình duyệt và các tệp liên quan đến ví tiền điện tử từ máy bị nhiễm |
 | Collection | T1074.001 – Data Staged: Local Data Staging | VodkaStealer tạo các thư mục staging dạng C:\Windows\Temp\sysinfo_* để gom dữ liệu thu thập trước khi exfil |
 | Collection | T1560 – Archive Collected Data | Hàm Invoke-Exfiltration của VodkaStealer nén staging directory thành tệp zip trước khi gửi ra ngoài |
 | Exfiltration | T1041 – Exfiltration Over C2 Channel | Exfil dữ liệu tới 165.245.213.184:4444. Địa chỉ và port này cũng được sử dụng cho reverse TCP shell |
