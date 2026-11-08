@@ -1041,25 +1041,17 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="BC
 ![](images/image49.png)
 
 Các process trình duyệt bị stealer kết thúc:
-
 - PAYOPS-WS-04: msedge.exe và opera.exe
-
 - BCHAIN-WS-11: firefox.exe và msedge.exe
 
 3. Phase C: Tạo thư mục staging (New-StagingDirectory) — Tạo thư mục tạm chứa data cần exfil, đặt tên theo định dạng: sysinfo_<CountryCode>_<PublicIp>_<Day><Month><Year><Hour><Minute>.
 
 4. Phase D: Thu thập dữ liệu (Invoke-DataCollection) — Thu thập thông tin hệ thống victim rồi lưu vào tệp tương ứng, những thông tin này bao gồm:
-
 - Phần mềm đã cài (InstalledSoftware.txt)
-
 - Thông tin hệ thống (systeminfo.txt)
-
 - Ảnh chụp màn hình (screenshot.png)
-
 - Dữ liệu trình duyệt (copy sang staging folder)
-
 - Dữ liệu ứng dụng ví điện tử (copy sang thư mục staging)
-
 - Tiện ích ví trên Chrome (copy sang thư mục staging)
 
 ```spl
@@ -1421,10 +1413,44 @@ Beacon rundll32.exe (2436) spawn chạy các lệnh (tất cả chạy dưới d
 | Stealth | T1036.004 – Masquerading: Masquerade Task or Service | Attacker đặt tên scheduled task là NextGen\DataSync Update, nhằm khiến task độc hại trông giống hoạt động cập nhật hợp lệ |
 | Stealth | T1036.005 – Masquerading: Match Legitimate Resource Name or Location | Payload cptchbuild.bin được đổi tên thành svc_update.exe; vodkastealer_emulator.ps1 được đổi tên thành svc_update.ps1, nhằm giả mạo thành trình cập nhật hợp lệ |
 | Discovery | T1614.001 – System Location Discovery: System Language Discovery | Hàm Invoke-PreFlightChecks của VodkaStealer kiểm tra keyboard layout liên quan đến Nga/Belarus |
+| Discovery | T1614 – System Location Discovery | Hàm Invoke-PreFlightChecks của VodkaStealer thực hiện request "http://ip-api.com/json" để lấy public IP và mã quốc gia (countryCode) của victim, từ đó xác định vị trí địa lý trước khi tiếp tục thực thi |
+| Stealth | T1480 – Execution Guardrails | Hàm Invoke-PreFlightChecks kiểm tra ngôn ngữ bàn phím và quốc gia. Script ngừng thực thi nếu phát hiện keyboard RU hoặc BY; kiểm tra marker file sysinfo_user_marker.marker để tránh chạy lại 2 lần |
+| Stealth | T1480.002 – Execution Guardrails: Mutual Exclusion | Hàm Invoke-PreFlightChecks kiểm tra mutex "Global\sysinfo_single_instance" tránh 2 instance chạy cùng lúc |
+| Discovery | T1518 – Software Discovery | Hàm Invoke-DataCollection truy vấn các registry key để xác định các phần mềm cài trên hệ thống | 
+| Discovery | T1012 – Query Registry | Stealer đọc thông tin phần mềm từ registry |
+| Discovery | T1082 – System Information Discovery | Stealer thu thập thông tin hệ thống rồi tổng hợp vào tệp systeminfo.txt |
 | Credential Access | T1555.003 – Credentials from Password Stores: Credentials from Web Browsers | Nội dung hàm Invoke-DataCollection cho thấy VodkaStealer nhắm tới dữ liệu trình duyệt, bao gồm các tệp cơ sở dữ liệu có thể chứa credentials, ví dụ: tệp "Login Data" |
+| Credential Access | T1539 – Steal Web Session Cookie | Stealer sao chép tệp Cookies từ các Chromium-based browsers và cookies.sqlite từ Firefox |
 | Collection | T1113 – Screen Capture | Hàm Invoke-DataCollection của VodkaStealer thực hiện capture màn hình và lưu kết quả dưới tên screenshot.png |
 | Collection | T1005 – Data from Local System | Hàm Invoke-DataCollection thực hiện thu thập system information, installed software, dữ liệu trình duyệt và các tệp liên quan đến ví tiền điện tử từ máy bị nhiễm |
 | Collection | T1074.001 – Data Staged: Local Data Staging | VodkaStealer tạo các thư mục staging dạng C:\Windows\Temp\sysinfo_* để gom dữ liệu thu thập trước khi exfil |
 | Collection | T1560 – Archive Collected Data | Hàm Invoke-Exfiltration của VodkaStealer nén staging directory thành tệp zip trước khi gửi ra ngoài |
-| Exfiltration | T1041 – Exfiltration Over C2 Channel | Exfil dữ liệu tới 165.245.213.184:4444. Địa chỉ và port này cũng được sử dụng cho reverse TCP shell |
-| Stealth | T1070.004 – Indicator Removal: File Deletion | Sysmon event id 23 trên COMP-FS-01 ghi nhận 2fdb156.exe bị xóa ngay sau khi thực thi. Ngoài ra, hàm Invoke-SelfCleanup trong VodkaStealer có thực hiện xóa zip và staging directory sau khi gửi dữ liệu. |
+| Exfiltration | T1048.003 – Exfiltration Over Alternative Protocol: Exfiltration Over Unencrypted Non-C2 Protocol | Exfil dữ liệu tới 165.245.213.184:4444 mà không encrypt |
+| Stealth | T1070.004 – Indicator Removal: File Deletion | Sysmon event id 23 trên COMP-FS-01 ghi nhận 2fdb156.exe bị xóa ngay sau khi thực thi. Ngoài ra, hàm Invoke-SelfCleanup trong VodkaStealer có thực hiện xóa zip và staging directory sau khi gửi dữ liệu |
+
+# IOC
+| Type | Indicator |
+|---|---|
+| URL | `http://3.122.229.6/captcha.html` |
+| URL | `http://3.122.229.6/payload.ps1` |
+| IP / Port | `3.122.229.6:80` |
+| IP / Port | `100.52.249.75:443` |
+| IP / Port | `165.245.213.184:4444` |
+| IP / Port | `165.245.213.184:8443` |
+| File | `C:\Program Files\DataSync Pro\Service.exe` |
+| File | `C:\Program Files\DataSync Pro\Sync.exe` |
+| SHA256 | `4A6EA38CDBBC99A51A06B1305CC833F8F93334EEE1E65CCC054E764BE4A1887A` |
+| MD5 | `6152E490837B7D32BDE1AE8C6152B117` |
+| File | `2fdb156.exe` |
+| SHA256 | `3C476AA9146BB159272DF79EBD08EEF8E2BB5F02EC7ADB40B51FB17FEAFC51B8` |
+| MD5 | `28974F59A4D9EE26DD15DC7E0AEE3F66` |
+| File | `cc53f75.exe` |
+| File | `48047da.exe` |
+| File | `C:\ProgramData\cptchbuild.bin` |
+| File | `C:\ProgramData\svc_update.exe` |
+| File | `C:\ProgramData\vodkastealer_emulator.ps1` |
+| File | `C:\ProgramData\svc_update.ps1` |
+| Scheduled Task | `\NextGen\DataSync Update` |
+| Named Pipe | `MSSE-586-server`, `MSSE-4594-server`, `MSSE-7473-server`, `MSSE-9487-server`, `postex_e9f2`, `postex_a43c`, `48723c`, `6be039`, `e39a55` |
+| File | `sysinfo_user_marker.marker` |
+| Mutex | `Global\sysinfo_single_instance` |
