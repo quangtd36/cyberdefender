@@ -1384,6 +1384,8 @@ Beacon rundll32.exe (2436) spawn chạy các lệnh (tất cả chạy dưới d
 | 2026-04-21 01:50:18 | `C:\Windows\system32\cmd.exe /C schtasks /create /tn "NextGen\DataSync Update" /tr "powershell.exe -nop -w hidden -ep bypass -File C:\ProgramData\svc_update.ps1 -SkipChecks" /sc daily /st 09:00 /ru SYSTEM /f` | Tạo task tên DataSync Update chạy script mỗi 9h sang dưới danh tính SYSTEM |
 | 2026-04-21 01:50:43 | `C:\Windows\system32\cmd.exe /C powershell -nop -ep bypass -File C:\ProgramData\svc_update.ps1 -SkipChecks -Verbose` | Chạy stealer qua powershell |
 
+# Timeline
+
 # Mitre att&ck
 | Tactic | Technique | Bằng chứng |
 |---|---|---|
@@ -1429,21 +1431,19 @@ Beacon rundll32.exe (2436) spawn chạy các lệnh (tất cả chạy dưới d
 | Stealth | T1070.004 – Indicator Removal: File Deletion | Sysmon event id 23 trên COMP-FS-01 ghi nhận 2fdb156.exe bị xóa ngay sau khi thực thi. Ngoài ra, hàm Invoke-SelfCleanup trong VodkaStealer có thực hiện xóa zip và staging directory sau khi gửi dữ liệu |
 
 # IOC
-| Type | Indicator |
+| Loại | Giá trị |
 |---|---|
 | URL | `http://3.122.229.6/captcha.html` |
 | URL | `http://3.122.229.6/payload.ps1` |
-| IP / Port | `3.122.229.6:80` |
-| IP / Port | `100.52.249.75:443` |
-| IP / Port | `165.245.213.184:4444` |
-| IP / Port | `165.245.213.184:8443` |
+| IP:Port | `3.122.229.6:80` |
+| IP:Port | `100.52.249.75:443` |
+| IP:Port | `165.245.213.184:4444` |
+| IP:Port | `165.245.213.184:8443` |
+| Hash - Service.exe | `SHA256=4A6EA38CDBBC99A51A06B1305CC833F8F93334EEE1E65CCC054E764BE4A1887A,SHA1=4C34F129ED36BD5ED21AB69683B8F5B348E8D504,MD5=6152E490837B7D32BDE1AE8C6152B117,IMPHASH=17B461A082950FC6332228572138B80C` |
+| Hash - 2fdb156.exe | `SHA256=3C476AA9146BB159272DF79EBD08EEF8E2BB5F02EC7ADB40B51FB17FEAFC51B8,SHA1=280C5F60C0162D8630DB3AAD725EEE61585E3732,MD5=28974F59A4D9EE26DD15DC7E0AEE3F66,IMPHASH=BED5688A4A2B5EA6984115B458755E90` |
 | File | `C:\Program Files\DataSync Pro\Service.exe` |
 | File | `C:\Program Files\DataSync Pro\Sync.exe` |
-| SHA256 | `4A6EA38CDBBC99A51A06B1305CC833F8F93334EEE1E65CCC054E764BE4A1887A` |
-| MD5 | `6152E490837B7D32BDE1AE8C6152B117` |
 | File | `2fdb156.exe` |
-| SHA256 | `3C476AA9146BB159272DF79EBD08EEF8E2BB5F02EC7ADB40B51FB17FEAFC51B8` |
-| MD5 | `28974F59A4D9EE26DD15DC7E0AEE3F66` |
 | File | `cc53f75.exe` |
 | File | `48047da.exe` |
 | File | `C:\ProgramData\cptchbuild.bin` |
