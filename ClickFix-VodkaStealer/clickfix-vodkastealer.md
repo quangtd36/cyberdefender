@@ -47,7 +47,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host IN 
 | sort _time
 ```
 
-![Kết quả truy vấn — Host 1: PAYOPS-WS-04 (10.10.11.252) (ảnh 01)](images/image01.png)
+![](images/image01.png)
 
 Vào 2026-04-20 23:26:21, trên PAYOPS-WS-04, sysmon event id 1 ghi nhận process powershell.exe (pid = 5580) được khởi chạy dưới danh tính n.hesham với command line đáng ngờ. Lệnh này sử dụng powershell để tải 1 script từ url http://3.122.229.6/payload.ps1 và thực thi trực tiếp nội dung tải về trong memory thay vì lưu script thành một tệp trên ổ đĩa. Ngoài ra, attacker sử dụng cờ -w hidden để ẩn cửa sổ powershell và -nop để bỏ qua việc nạp powershell profile.
 
@@ -57,9 +57,19 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | sort _time
 ```
 
-![Kết quả truy vấn — Host 1: PAYOPS-WS-04 (10.10.11.252) (ảnh 02)](images/image02.png)
+![](images/image02.png)
 
 RunMRU là registry key được Windows sử dụng để lưu lịch sử các lệnh người dùng nhập vào hộp thoại Run (Win + R). Vào 2026-04-20 23:26:21, sysmon event id 13 ghi nhận một registry value mới chứa chính lệnh powershell độc hại quan sát được trước đó. Kết hợp với sự kiện khởi chạy powershell.exe từ explorer.exe cùng thời điểm, ta có thể xác nhận lệnh đã được thực thi thông qua hộp thoại Run. Chuỗi hành vi này phù hợp với kỹ thuật ClickFix được mô tả trong scenario. Process tương ứng chạy dưới danh tính n.hesham, với logon id = 0x12d3c4a. Khoảng 27 phút sau, vào 2026-04-20 23:53:49, ghi nhận thêm một lần thực thi câu lệnh powershell tương tự thông qua hộp thoại Run, nhưng lần này thuộc phiên đăng nhập có logon id = 0x1cacaf.
+
+```spl
+host="eve.json" earliest="04/20/2026:23:00:00" latest="04/20/2026:23:50:00" src_ip="10.10.11.252" event_type=http
+| table _time src_ip src_port dest_ip dest_port http.http_method http.hostname http.http_refer http.url http.status http.length http.http_content_type http.http_user_agent flow_id
+| sort _time
+```
+![alt text](images/image.png)
+
+Vào 2026-04-20 23:26:07.815, suricata ghi nhận một HTTP GET request từ PAYOPS-WS-04 (`10.10.11.252`) tới `http://3.122.229.6/captcha.html`, với HTTP status code 200 (OK), cho thấy server đã phản hồi thành công yêu cầu truy cập. Đáng chú ý, request này xuất hiện khoảng 13 giây trước khi powershell độc hại được khởi chạy thông qua hộp thoại Run (Win + R) lúc 23:26:21. Sự tương quan về thời gian, kết hợp với tên đường dẫn `/captcha.html` và việc script `payload.ps1` sau đó được tải từ cùng IP, cho thấy đây nhiều khả năng là trang chứa fake CAPTCHA được attacker sử dụng để lừa người dùng thực thi lệnh powershell độc hại.
+
 
 ### 1.1. Thông tin tài khoản n.hesham
 
@@ -74,9 +84,9 @@ index=main source=WinEventLog:Security host="PAYOPS-WS-04" EventCode=4627 Target
 | table _time TargetUserName TargetLogonId TargetUserSid GroupMembership
 ```
 
-![Kết quả truy vấn — 1.1. Thông tin tài khoản n.hesham (ảnh 03)](images/image03.png)
+![](images/image03.png)
 
-![Kết quả truy vấn — 1.1. Thông tin tài khoản n.hesham (ảnh 04)](images/image04.png)
+![](images/image04.png)
 
 Tuy nhiên, ghi nhận event id 4627 cung cấp thông tin về các nhóm bảo mật được ghi nhận trong phiên đăng nhập của n.hesham. Trong danh sách group membership quan sát được, không có các nhóm quản trị như là Administrators hoặc Domain Admins. Vì vậy, nhiều khả năng n.hesham chỉ là Domain User thông thường, không được gán quyền quản trị
 
@@ -136,11 +146,11 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | stats count by EventCode
 ```
 
-![Kết quả truy vấn — 1.3. Process PowerShell (PID = 5580) — khởi chạy lúc 2026-04-20 23:26:21 (ảnh 06)](images/image06.png)
+![](images/image06.png)
 
 Process powershell (pid = 5580) kết thúc vào 2026-04-20 23:41:30, khoảng 15 phút kể từ khi bắt đầu thực thi
 
-![Kết quả truy vấn — 1.3. Process PowerShell (PID = 5580) — khởi chạy lúc 2026-04-20 23:26:21 (ảnh 07)](images/image07.png)
+![](images/image07.png)
 
 Thống kê các sysmon event liên quan đến process này
 
@@ -154,9 +164,9 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | table _time TargetFilename Hashes
 ```
 
-![Kết quả truy vấn — 1.3. Process PowerShell (PID = 5580) — khởi chạy lúc 2026-04-20 23:26:21 (ảnh 08)](images/image08.png)
+![](images/image08.png)
 
-![Kết quả truy vấn — 1.3. Process PowerShell (PID = 5580) — khởi chạy lúc 2026-04-20 23:26:21 (ảnh 09)](images/image09.png)
+![](images/image09.png)
 
 Lúc 2026-04-20 23:36:15, drop thành công payload Service.exe vào thư mục “C:\Program Files\DataSync Pro\”
 
@@ -172,7 +182,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | stats count by _time DestinationIp DestinationPort
 ```
 
-![Kết quả truy vấn — 1.3. Process PowerShell (PID = 5580) — khởi chạy lúc 2026-04-20 23:26:21 (ảnh 10)](images/image10.png)
+![](images/image10.png)
 
 Process powershell.exe (pid = 5580) khởi tạo nhiều kết nối tới 100.52.249.75:443, đồng thời có một kết nối tới 3.122.229.6:80, trùng với địa chỉ server lưu trữ script payload.ps1. Việc sử dụng các cổng 80 và 443, vốn dành cho 2 giao thức HTTP và HTTPS, có thể giúp lưu lượng độc hại hòa lẫn vào hoạt động mạng thông thường để tránh né detection. 
 
@@ -182,7 +192,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | sort _time
 ```
 
-![Kết quả truy vấn — 1.3. Process PowerShell (PID = 5580) — khởi chạy lúc 2026-04-20 23:26:21 (ảnh 11)](images/image11.png)
+![](images/image11.png)
 
 #### Spawn ra các process con thực thi lệnh
 | Timestamp | Lệnh | Giải thích |
@@ -215,9 +225,9 @@ index=main source="WinEventLog:System" host="PAYOPS-WS-04" "*C:\\Program Files\\
 | table _time service_name ServiceType StartType AccountName ImagePath
 ```
 
-![Kết quả truy vấn — Các process con và lệnh được thực thi (ảnh 12)](images/image12.png)
+![](images/image12.png)
 
-![Kết quả truy vấn — Các process con và lệnh được thực thi (ảnh 13)](images/image13.png)
+![](images/image13.png)
 
 
 DataSyncPro là một service được cấu hình tự động khởi chạy dưới danh tính SYSTEM khi hệ thống boot. Executable hợp lệ của service nằm tại: C:\Program Files\DataSync Pro\Sync Service\datasync-svc.exe
@@ -246,7 +256,7 @@ index=main host="PAYOPS-WS-04" earliest="04/20/2026:23:26:00" latest="04/20/2026
 | table _time param1 param2 param3 param4 param5 param7
 ```
 
-![Kết quả truy vấn — Khai thác Unquoted Service Path của DataSyncPro (ảnh 14)](images/image14.png)
+![](images/image14.png)
 
 Event id 1074 ghi nhận yêu cầu khởi động lại host PAYOPS-WS-04 được khởi tạo thông qua shutdown.exe vào 2026-04-20 23:41:23. Sự kiện này phù hợp với lệnh reboot được quan sát trong log process trước đó.
 
@@ -257,14 +267,14 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | stats count by EventCode
 ```
 
-![Kết quả truy vấn — 1.4. Reverse shell PowerShell (PID = 14032) — khởi chạy lúc 2026-04-20 23:31:14 (ảnh 15)](images/image15.png)
+![](images/image15.png)
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/20/2026:23:31:14" process_id=14032 EventCode=3
 | table _time DestinationIp DestinationPort
 ```
 
-![Kết quả truy vấn — 1.4. Reverse shell PowerShell (PID = 14032) — khởi chạy lúc 2026-04-20 23:31:14 (ảnh 16)](images/image16.png)
+![](images/image16.png)
 
 Đối với script reverse shell này, ghi nhận 1 sự kiện đáng chú ý đó là 1 kết nối tới 165.245.213.184:4444 vào 2026-04-20 23:31:19
 
@@ -274,7 +284,7 @@ host="eve.json" 165.245.213.184
 | sort _time
 ```
 
-![Kết quả truy vấn — 1.4. Reverse shell PowerShell (PID = 14032) — khởi chạy lúc 2026-04-20 23:31:14 (ảnh 17)](images/image17.png)
+![](images/image17.png)
 
 Flow tcp mà suricata ghi nhận lúc 2026-04-20 23:41:22.648 cho thấy victim (10.10.11.252) sau khi thiết lập 1 TCP handshake (SYN-SYN_ACK-ACK tương ứng với tổng 3 gói tin ghi nhận được) tới server c2 165.245.213.184:4444, trong log chưa ghi nhận server c2 gửi bất cứ lệnh nào. Ngoài ra cũng ghi nhận kết nối tới IP đáng ngờ này trên host 10.10.11.206 (BCHAIN-WS-11), số lượng bytes gửi tới server là vào khoảng 26MB, cho thấy dấu hiệu lateral movement và exfiltration trên host này
 
@@ -324,9 +334,9 @@ index=main host="PAYOPS-WS-04" EventCode=4688 (Sync.exe OR *DataSync Pro*)
 | sort _time
 ```
 
-![Kết quả truy vấn — 1.5. Hoạt động sau lần khởi động lại thứ nhất (ảnh 19)](images/image19.png)
+![](images/image19.png)
 
-![Kết quả truy vấn — 1.5. Hoạt động sau lần khởi động lại thứ nhất (ảnh 20)](images/image20.png)
+![](images/image20.png)
 
 Chưa ghi nhận thời gian chính xác service độc hại Sync.exe được thực thi bởi service.exe mà chỉ ghi nhận service độc hại này spawn ra một child process là rundll32.exe (pid = 3904) chạy dưới danh tính SYSTEM vào 2026-04-21 00:14:25. Điều này cho thấy attacker đã khai thác thành công lỗi cấu hình của service DataSyncPro để thực thi payload với đặc quyền SYSTEM.
 
@@ -343,11 +353,11 @@ index=main host="PAYOPS-WS-04" earliest="04/21/2026:00:00:00" EventCode=4689
 | table _time src_user Logon_ID ProcessId process
 ```
 
-![Kết quả truy vấn — 1.6. Process Sync.exe (PID = 3348) (ảnh 21)](images/image21.png)
+![](images/image21.png)
 
 Thống kê các sysmon event liên quan đến process này
 
-![Kết quả truy vấn — 1.6. Process Sync.exe (PID = 3348) (ảnh 22)](images/image22.png)
+![](images/image22.png)
 
 Chưa ghi nhận thời điểm process này kết thúc
 
@@ -356,7 +366,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | table _time EventDescription PipeName process_path ProcessId
 ```
 
-![Kết quả truy vấn — 1.6. Process Sync.exe (PID = 3348) (ảnh 23)](images/image23.png)
+![](images/image23.png)
 
 Tạo và kết nối tới pipe có tên MSSE-586-server, trong đó pipe dạng MSSE-xxxx-server là tên named pipe mặc định do Cobalt Strike (cụ thể là từ Artifact Kit dùng cho các file EXE/DLL backdoor loader) tạo ra trong quá trình giao tiếp giữa các process (Inter-Process Communication - IPC)
 
@@ -366,7 +376,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | sort _time
 ```
 
-![Kết quả truy vấn — 1.6. Process Sync.exe (PID = 3348) (ảnh 24)](images/image24.png)
+![](images/image24.png)
 
 Vào 2026-04-21 00:14:25, khởi tạo process rundll32.exe (3904) không có thêm bất kì tham số nào
 
@@ -377,7 +387,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | stats count by EventCode
 ```
 
-![Kết quả truy vấn — 1.7. Process rundll32.exe (PID = 3904) — khởi chạy lúc 2026-04-21 00:14:25 (ảnh 25)](images/image25.png)
+![](images/image25.png)
 
 Thống kê các sysmon event liên quan đến process này
 
@@ -387,7 +397,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | stats count by _time DestinationIp DestinationPort
 ```
 
-![Kết quả truy vấn — 1.7. Process rundll32.exe (PID = 3904) — khởi chạy lúc 2026-04-21 00:14:25 (ảnh 26)](images/image26.png)
+![](images/image26.png)
 
 Process rundll32.exe (pid = 3904) duy trì kết nối tới C2 100.52.249.75 trên port 443 (https) nhằm lẫn vào các hoạt động thông thường. Ngoài ra cũng ghi nhận kết nối tới port 135 (RPC endpoint mapper) trên 10.10.11.81 (COMP-FS-01) và 10.10.11.206 (BCHAIN-WS-11) để hỏi dịch vụ yêu cầu nằm trên port trong dải động 49152 đến 65535 nào rồi kết nối tới port tương ứng mà Endpoint Mapper trên máy đích trả về, đây là dấu hiệu cho thấy attacker đang thực hiện lateral movement sang các host nội bộ
 
@@ -397,7 +407,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | sort _time
 ```
 
-![Kết quả truy vấn — 1.7. Process rundll32.exe (PID = 3904) — khởi chạy lúc 2026-04-21 00:14:25 (ảnh 27)](images/image27.png)
+![](images/image27.png)
 
 Cụ thể hơn, process rundll32.exe (3904) kết nối tới RPC endpoint mapper trên COMP-FS-01 vào 2026-04-21 00:30:47, trên BCHAIN-WS-11 vào 2026-04-21 01:39:04 và 2026-04-21 01:44:43
 
@@ -407,7 +417,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | sort _time
 ```
 
-![Kết quả truy vấn — 1.7. Process rundll32.exe (PID = 3904) — khởi chạy lúc 2026-04-21 00:14:25 (ảnh 28)](images/image28.png)
+![](images/image28.png)
 
 Drop các payload:
 
@@ -423,7 +433,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | sort _time
 ```
 
-![Kết quả truy vấn — 1.7. Process rundll32.exe (PID = 3904) — khởi chạy lúc 2026-04-21 00:14:25 (ảnh 29)](images/image29.png)
+![](images/image29.png)
 
 Kết nối tới các pipe dạng postex_xxxx (tạo bởi beacon con) nhận dữ liệu từ các beacon con rundll32.exe spawn ra để thực hiện các job post-exploitation
 
@@ -435,7 +445,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | sort _time
 ```
 
-![Kết quả truy vấn — 1.7. Process rundll32.exe (PID = 3904) — khởi chạy lúc 2026-04-21 00:14:25 (ảnh 30)](images/image30.png)
+![](images/image30.png)
 
 Spawn ra các process sau:
 
@@ -454,14 +464,14 @@ Spawn ra các process sau:
 | 2026-04-21 00:27:00 | `C:\Windows\system32\cmd.exe /C net group "Domain Computers" /domain` | Liệt kê tất cả máy tính trong domain |
 | 2026-04-21 00:27:37 | `C:\Windows\system32\rundll32.exe` | Spawn ra beacon con (pid = 7004) |
 
-#### Hoạt động của các beacon con rundll32.exe (5328, 6008, 9472, 7004)
+##### Hoạt động của các beacon con rundll32.exe (5328, 6008, 9472, 7004)
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/21/2026:00:16:00" latest="04/21/2026:00:52:50" (process_id IN (5328, 6008, 9472, 7004) OR parent_process_id IN (5328, 6008, 9472, 7004) OR SourceProcessId IN (5328, 6008, 9472, 7004))
 | stats count by EventCode
 ```
 
-![Kết quả truy vấn — Hoạt động của các beacon con rundll32.exe (ảnh 31)](images/image31.png)
+![](images/image31.png)
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/21/2026:00:16:00" latest="04/21/2026:00:52:50" (process_id IN (5328, 6008, 9472, 7004) OR parent_process_id IN (5328, 6008, 9472, 7004) OR SourceProcessId IN (5328, 6008, 9472, 7004)) EventCode=17
@@ -469,7 +479,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | sort _time
 ```
 
-![Kết quả truy vấn — Hoạt động của các beacon con rundll32.exe (ảnh 32)](images/image32.png)
+![](images/image32.png)
 
 Tạo các pipe dạng postex_xxxx để beacon cha kết nối tới và nhận dữ liệu
 
@@ -478,7 +488,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | table _time user ParentProcessId ParentCommandLine ProcessId CommandLine
 ```
 
-![Kết quả truy vấn — Hoạt động của các beacon con rundll32.exe (ảnh 33)](images/image33.png)
+![](images/image33.png)
 
 Vào 2026-04-21 00:27:37, rundll32.exe (pid = 7004) khởi chạy cmd.exe với lệnh echo 8bebcc2a1c9 > \\.\pipe\48723c. Lệnh này chuyển hướng output của echo (ở đây là chuỗi 8bebcc2a1c9) vào named pipe 48723c được tạo bởi beacon cha rundll32.exe (pid = 3904) gần cùng thời điểm. Chuỗi ký tự được ghi vào pipe có thể đóng vai trò như là tín hiệu hoặc mã định danh phục vụ điều phối job post-exploit, tuy nhiên chưa rõ chức năng cụ thể là gì.
 
@@ -488,11 +498,11 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | sort _time
 ```
 
-![Kết quả truy vấn — Hoạt động của các beacon con rundll32.exe (ảnh 34)](images/image34.png)
+![](images/image34.png)
 
 Từ 2026-04-21 00:16:52 đến 2026-04-21 00:27:37, beacon rundll32.exe (5328) mở handle với full access tới lsass.exe rồi tạo 1 remote thread chạy code đã inject vào process lsass.exe, trong khi đó, 3 beacon còn lại bao gồm 6008, 9472 và 7004 chỉ mở handle tới lsass.exe với access mask = 0x1010 (PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ) đọc memory của lsass.exe. Đây là dấu hiệu thấy attacker đang thực hiện dump credentials từ lsass.exe
 
-#### Đối chiếu Security log và hoạt động truy cập LSASS
+##### Đối chiếu Security log và hoạt động truy cập LSASS
 
 Filter ra các Security log trong khoảng thời gian này
 
@@ -507,11 +517,11 @@ index=main source="WinEventLog:Security" host="PAYOPS-WS-04" earliest="04/21/202
 | sort _time
 ```
 
-![Kết quả truy vấn — Đối chiếu Security log và hoạt động truy cập LSASS (ảnh 35)](images/image35.png)
+![](images/image35.png)
 
-![Kết quả truy vấn — Đối chiếu Security log và hoạt động truy cập LSASS (ảnh 36)](images/image36.png)
+![](images/image36.png)
 
-#### Tài khoản k.mostafa.admin và lateral movement sang COMP-FS-01
+##### Tài khoản k.mostafa.admin và lateral movement sang COMP-FS-01
 
 Ghi nhận event id 4624 trên PAYOPS-WS-04 với logon type = 9 và credentials được sử dụng là của user k.mostafa.admin .
 
@@ -525,7 +535,7 @@ index=main source="WinEventLog:Security" host="COMP-FS-01" earliest="04/21/2026:
 | sort _time
 ```
 
-![Kết quả truy vấn — Tài khoản k.mostafa.admin và lateral movement sang COMP-FS-01 (ảnh 37)](images/image37.png)
+![](images/image37.png)
 
 Trong cùng thời điểm, vào 2026-04-21 00:30:45, ghi nhận logon thành công từ 10.10.11.252 (PAYOPS-WS-04) trên COMP-FS-01 với logon type 3 (network logon – dấu hiệu xác thực qua mạng để chạy lệnh), tài khoản được sử dụng là k.mostafa.admin (S-1-5-21-546352951-3134867265-500606796-1197), phương thức xác thực được sử dụng là NTLM thay vì kerberos. Nhiều khả năng sau khi đánh cắp được password hash của user k.mostafa.admin từ process lsass.exe, attacker đã thực hiện kĩ thuật pass-the-hash để xác thực và truy cập các hệ thống khác mà không cần biết plaintext password
 
@@ -534,7 +544,7 @@ index=main host="COMP-FS-01" earliest="04/21/2026:00:27:25" latest="04/21/2026:0
 | table _time SubjectUserName PrivilegeList
 ```
 
-![Kết quả truy vấn — Tài khoản k.mostafa.admin và lateral movement sang COMP-FS-01 (ảnh 38)](images/image38.png)
+![](images/image38.png)
 
 k.mostafa.admin là user nằm trong các nhóm quản trị nên được gán privilege nâng cao như là SeDebugPrivilege hoặc SeImpersonatePrivilege
 
@@ -553,13 +563,13 @@ index=main host="COMP-FS-01" earliest="04/21/2026:00:27:25" latest="04/21/2026:0
 | table _time SubjectUserName SubjectLogonId ObjectType Opcode ShareName ShareLocalPath RelativeTargetName
 ```
 
-![Kết quả truy vấn — Tài khoản k.mostafa.admin và lateral movement sang COMP-FS-01 (ảnh 39)](images/image39.png)
+![](images/image39.png)
 
-![Kết quả truy vấn — Tài khoản k.mostafa.admin và lateral movement sang COMP-FS-01 (ảnh 40)](images/image40.png)
+![](images/image40.png)
 
-![Kết quả truy vấn — Tài khoản k.mostafa.admin và lateral movement sang COMP-FS-01 (ảnh 41)](images/image41.png)
+![](images/image41.png)
 
-Attacker đặt 1 binary độc hại với tên ngẫu nhiên là 2fdb156.exe vào ADMIN$ share trên COMP-FS-01. Sau đó, beacon rundll32.exe (3904) kết nối tới RPC endpoint mapper trên COMP-FS-01 port 135 hỏi dịch vụ MS-SCMR nằm ở port động nào, sau khi nhận được port tương ứng, gọi hàm RPC để tạo 1 dịch vụ độc hại chạy binary vừa drop vào ADMIN$ share,  Image path của service: \\10.10.11.81\ADMIN$\2fdb156.exe
+Attacker đặt 1 binary độc hại với tên ngẫu nhiên là 2fdb156.exe vào ADMIN\$ share trên COMP-FS-01. Sau đó, beacon rundll32.exe (3904) kết nối tới RPC endpoint mapper trên COMP-FS-01 port 135 hỏi dịch vụ MS-SCMR nằm ở port động nào, sau khi nhận được port tương ứng, gọi hàm RPC để tạo 1 dịch vụ độc hại chạy binary vừa drop vào ADMIN$ share,  Image path của service: \\10.10.11.81\ADMIN\$\2fdb156.exe
 
 ```spl
 index=main host="COMP-FS-01" earliest="04/21/2026:00:27:25" latest="04/21/2026:00:35:00" EventCode=4688 2fdb156.exe
@@ -567,7 +577,7 @@ index=main host="COMP-FS-01" earliest="04/21/2026:00:27:25" latest="04/21/2026:0
 | table _time SubjectUserName SubjectUserSid ProcessId ParentProcessName NewProcessId NewProcessName
 ```
 
-![Kết quả truy vấn — Tài khoản k.mostafa.admin và lateral movement sang COMP-FS-01 (ảnh 42)](images/image42.png)
+![](images/image42.png)
 
 Ngay sau khi thành công tạo service độc hại từ xa, vào 2026-04-21 00:30:46, service độc hại này được khởi chạy với pid = 3872 và spawn ra rundll32.exe (5600)
 
@@ -601,11 +611,11 @@ Attacker đã thành công lateral movement sang COMP-FS-01
 | 2026-04-21 01:09:29 | `C:\Windows\system32\cmd.exe /C C:\ProgramData\svc_update.exe` | Thử chạy svc_update.exe trực tiếp dưới context user hiện tại 1 lần nữa |
 | 2026-04-21 01:09:54 | `C:\Windows\system32\cmd.exe /C dir C:\Users\n.hesham\AppData\Local\Temp\*.zip` | Kiểm tra output stealer |
 
-![Kết quả truy vấn — Phase 2 — Triển khai svc_update.exe và Scheduled Task (ảnh 43)](images/image43.png)
+![](images/image43.png)
 
 Trong log, sysmon event id 1 chưa ghi nhận process svc_update.exe được thực thi thành công
 
-#### Hoạt động của beacon con rundll32.exe (9084, 5484)
+##### Hoạt động của beacon con rundll32.exe (9084, 5484)
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/21/2026:01:07:00" (parent_process_id IN (9084, 5484) OR process_id IN (9084, 5484) OR SourceProcessId IN (9084, 5484))
@@ -617,9 +627,9 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | stats count by DestinationIp DestinationPort
 ```
 
-![Kết quả truy vấn — Hoạt động của beacon con rundll32.exe (PID = 9084, 5484) (ảnh 44)](images/image44.png)
+![](images/image44.png)
 
-![Kết quả truy vấn — Hoạt động của beacon con rundll32.exe (PID = 9084, 5484) (ảnh 45)](images/image45.png)
+![](images/image45.png)
 
 2 beacon con rundll32.exe này chỉ duy trì beacon định kì tới c2 ip 100.52.249.75:443
 
@@ -642,7 +652,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | 2026-04-21 01:37:09 | `C:\Windows\system32\rundll32.exe` | Spawn ra beacon con (pid = 8528) |
 | 2026-04-21 01:37:33 | `C:\Windows\system32\cmd.exe /C powershell -nop -ep bypass -File C:\ProgramData\svc_update.ps1 -SkipChecks -ExfilPort 4444 -Verbose` | Chạy lại script 1 lần nữa với command tương tự |
 
-#### Hoạt động của beacon con rundll32.exe (pid = 8528)
+##### Hoạt động của beacon con rundll32.exe (pid = 8528)
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/21/2026:01:37:00" (parent_process_id=8528 OR process_id=8528 OR SourceProcessId=8528)
@@ -654,7 +664,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | stats count by DestinationIp DestinationPort
 ```
 
-![Kết quả truy vấn — Hoạt động của beacon con rundll32.exe (PID = 8528) (ảnh 46)](images/image46.png)
+![](images/image46.png)
 
 Duy trì beacon tới 100.52.249.75:443
 
@@ -674,7 +684,7 @@ index=main source!="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="P
 | table _time Path ScriptBlockText
 ```
 
-![Kết quả truy vấn — 1.8. Phân tích script VodkaStealer (vodkastealer_emulator.ps1 / svc_update.ps1) (ảnh 47)](images/image47.png)
+![](images/image47.png)
 
 Vào 2026-04-21 01:33:44, sau khi script svc_update.ps1 được thực thi, event id 4104 (script block logging) ghi log lại đầy đủ content của script này:
 
@@ -1026,9 +1036,9 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="BC
 | table _time ParentCommandLine CommandLine
 ```
 
-![Kết quả truy vấn — 1.8. Phân tích script VodkaStealer (vodkastealer_emulator.ps1 / svc_update.ps1) (ảnh 48)](images/image48.png)
+![](images/image48.png)
 
-![Kết quả truy vấn — 1.8. Phân tích script VodkaStealer (vodkastealer_emulator.ps1 / svc_update.ps1) (ảnh 49)](images/image49.png)
+![](images/image49.png)
 
 Các process trình duyệt bị stealer kết thúc:
 
@@ -1062,9 +1072,9 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="BC
 | table _time TargetFilename
 ```
 
-![Kết quả truy vấn — 1.8. Phân tích script VodkaStealer (vodkastealer_emulator.ps1 / svc_update.ps1) (ảnh 50)](images/image50.png)
+![](images/image50.png)
 
-![Kết quả truy vấn — 1.8. Phân tích script VodkaStealer (vodkastealer_emulator.ps1 / svc_update.ps1) (ảnh 51)](images/image51.png)
+![](images/image51.png)
 
 Thư mục staging được stealer tạo:
 - PAYOPS-WS-04: C:\Windows\Temp\sysinfo_US_10.0.0.1_210420260133
@@ -1080,14 +1090,14 @@ host="eve.json" event_type=flow dest_ip=165.245.213.184 dest_port=4444
 | sort 0 _time
 ```
 
-![Kết quả truy vấn — 1.8. Phân tích script VodkaStealer (vodkastealer_emulator.ps1 / svc_update.ps1) (ảnh 52)](images/image52.png)
+![](images/image52.png)
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/21/2026:01:30:00" EventCode=3 process_id=9900
 | table _time process_exec process_id DestinationIp DestinationPort RuleName
 ```
 
-![Kết quả truy vấn — 1.8. Phân tích script VodkaStealer (vodkastealer_emulator.ps1 / svc_update.ps1) (ảnh 53)](images/image53.png)
+![](images/image53.png)
 
 Log suricata ghi nhận một flow TCP từ host 10.10.11.206 (BCHAIN-WS-11) tới 165.245.213.184:4444 trong khoảng 01:51:25-01:52:25 UTC (ngay sau thời điểm stealer được thực thi - 2026-04-21 01:50:43), gửi đi khoảng 25 MB, nhận về 28 KB tương đương vơi 1 gói ACK; giao thức không được nhận dạng (app_proto=failed) do stealer gửi dữ liệu qua TCP thô. Tuy nhiên, trên PAYOPS-WS-04, mặc dù sysmon event 3 ghi nhận stealer kết nối tới C2 lúc 01:33:49 (stealer thực thi vào 2026-04-21 01:33:42), nhưng ta không tìm thấy log suricata tương ứng, nên chưa xác định được lượng dữ liệu bị exfil và chưa xác nhận được dữ liệu đã được exfil thành công hay chưa.
 
@@ -1102,7 +1112,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | table _time EventDescription process_id process_path PipeName
 ```
 
-![Kết quả truy vấn — 1.9. Hoạt động của các beacon con (PID = 3744, 11772) (ảnh 54)](images/image54.png)
+![](images/image54.png)
 
 Lần lượt tạo ra 2 pipe postex_e9f2, postex_a43c vào 2026-04-21 01:38:14 và 2026-04-21 01:44:12
 
@@ -1111,7 +1121,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | table _time EventDescription Image process_id PipeName
 ```
 
-![Kết quả truy vấn — 1.9. Hoạt động của các beacon con (PID = 3744, 11772) (ảnh 55)](images/image55.png)
+![](images/image55.png)
 
 Beacon cha rundll32.exe (3904) kết nối tới pipe này ngay sau khi tạo thành công để giao tiếp với beacon con
 
@@ -1120,7 +1130,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | table _time EventDescription process_id process_path CommandLine
 ```
 
-![Kết quả truy vấn — 1.9. Hoạt động của các beacon con (PID = 3744, 11772) (ảnh 56)](images/image56.png)
+![](images/image56.png)
 
 Chạy lệnh cmd ghi 1 chuỗi ngẫu nhiên vào pipe 6be039, e39a55 do beacon cha rundll32.exe (3904) tạo ra trước đó
 
@@ -1130,7 +1140,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | sort _time
 ```
 
-![Kết quả truy vấn — 1.9. Hoạt động của các beacon con (PID = 3744, 11772) (ảnh 57)](images/image57.png)
+![](images/image57.png)
 
 - Thực hiện truy cập memory process lsass.exe, nhiều khả năng là đánh cắp credentials rồi gửi dữ liệu qua named pipe vừa tạo cho beacon cha
 
@@ -1141,7 +1151,7 @@ index=main host="BCHAIN-WS-11" earliest="04/21/2026:01:39:00" EventCode=7045
 | table _time ServiceName ServiceType StartType ImagePath
 ```
 
-![Kết quả truy vấn — 1.9. Hoạt động của các beacon con (PID = 3744, 11772) (ảnh 58)](images/image58.png)
+![](images/image58.png)
 
 Attacker tạo 2 service chạy 2 binary (cc53f75.exe và 48047da.exe) đặt trong ADMIN$ share
 
@@ -1156,9 +1166,9 @@ index=main host="PAYOPS-WS-04" earliest="04/21/2026:01:38:00" latest="04/21/2026
 | sort _time
 ```
 
-![Kết quả truy vấn — 1.9. Hoạt động của các beacon con (PID = 3744, 11772) (ảnh 59)](images/image59.png)
+![](images/image59.png)
 
-![Kết quả truy vấn — 1.9. Hoạt động của các beacon con (PID = 3744, 11772) (ảnh 60)](images/image60.png)
+![](images/image60.png)
 
 Attacker tiếp tục sử dụng kĩ thuật pass-the-hash với credentials chiếm được của user k.mostafa.admin để lateral movement sang BCHAIN-WS-11
 
@@ -1177,11 +1187,11 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="CO
 | stats count by EventCode
 ```
 
-![Kết quả truy vấn — 2.1. Service 2fdb156.exe (PID = 3872) — khởi chạy lúc 2026-04-21 00:30:45 (ảnh 61)](images/image61.png)
+![](images/image61.png)
 
 Process 2fdb156.exe (pid = 3872) kết thúc vào 2026-04-21 00:30:46, gần như ngay sau khi được khởi chạy. 
 
-![Kết quả truy vấn — 2.1. Service 2fdb156.exe (PID = 3872) — khởi chạy lúc 2026-04-21 00:30:45 (ảnh 62)](images/image62.png)
+![](images/image62.png)
 
 Thống kê các sysmon event liên quan đến process này
 
@@ -1190,7 +1200,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="CO
 | table _time TargetFilename Hashes
 ```
 
-![Kết quả truy vấn — 2.1. Service 2fdb156.exe (PID = 3872) — khởi chạy lúc 2026-04-21 00:30:45 (ảnh 63)](images/image63.png)
+![](images/image63.png)
 
 Vào 2026-04-21 00:30:47, service độc hại 2fdb156.exe bị xóa đi ngay sau khi thực thi nhằm che đậy dấu vết
 
@@ -1206,7 +1216,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="CO
 | sort _time
 ```
 
-![Kết quả truy vấn — 2.1. Service 2fdb156.exe (PID = 3872) — khởi chạy lúc 2026-04-21 00:30:45 (ảnh 64)](images/image64.png)
+![](images/image64.png)
 
 Vào 2026-04-21 00:30:45-46, tạo vào kết nối tới pipe MSSE-4594-server
 
@@ -1216,7 +1226,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="CO
 | sort _time
 ```
 
-![Kết quả truy vấn — 2.1. Service 2fdb156.exe (PID = 3872) — khởi chạy lúc 2026-04-21 00:30:45 (ảnh 65)](images/image65.png)
+![](images/image65.png)
 
 Vào 2026-04-21 00:30:46, spawn ra beacon con rundll32.exe (5600) trước khi kết thúc. Chuỗi hành vi phù hợp với cơ chế của một loader: thực thi trong thời gian ngắn để khởi chạy payload khác, sau đó kết thúc trong khi payload tiếp tục hoạt động bên trong process được tạo.
 
@@ -1227,7 +1237,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="CO
 | stats count by EventCode
 ```
 
-![Kết quả truy vấn — 2.2. Process rundll32.exe (PID = 5600) — khởi chạy lúc 2026-04-21 00:30:46 (ảnh 66)](images/image66.png)
+![](images/image66.png)
 
 Thống kê các sysmon event liên quan đến process này
 
@@ -1238,7 +1248,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="CO
 | sort _time
 ```
 
-![Kết quả truy vấn — 2.2. Process rundll32.exe (PID = 5600) — khởi chạy lúc 2026-04-21 00:30:46 (ảnh 67)](images/image67.png)
+![](images/image67.png)
 
 Duy trì beaconing tới C2 100.52.249.75:443, ngoài ra, ghi nhận 1 kết nối tới 92.223.97.79:80
 
@@ -1252,9 +1262,9 @@ index=suricata event_type=http src_ip=10.10.11.81 92.223.97.79
 | table _time http.http_method http.http_user_agent http.http_content_type http.status http.hostname http.url
 ```
 
-![Kết quả truy vấn — 2.2. Process rundll32.exe (PID = 5600) — khởi chạy lúc 2026-04-21 00:30:46 (ảnh 68)](images/image68.png)
+![](images/image68.png)
 
-![Kết quả truy vấn — 2.2. Process rundll32.exe (PID = 5600) — khởi chạy lúc 2026-04-21 00:30:46 (ảnh 69)](images/image69.png)
+![](images/image69.png)
 
 Kết nối tới 92.223.97.79:80 là hoạt động bình thường của Windows do đây là cơ chế Automatic Root Certificates Update của CryptoAPI, tải Certificate Trust List (authrootstl.cab) từ ctldl.windowsupdate.com. Kết nối này xảy ra khi process (PID 5600) xác thực chuỗi chứng chỉ, nhiều khả năng ngay trước khi thiết lập kết nối HTTPS tới 100.52.249.75:443
 
@@ -1263,7 +1273,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="CO
 | table _time TargetFilename
 ```
 
-![Kết quả truy vấn — 2.2. Process rundll32.exe (PID = 5600) — khởi chạy lúc 2026-04-21 00:30:46 (ảnh 70)](images/image70.png)
+![](images/image70.png)
 
 Drop payload cptchbuild.bin vào thư mục C:\ProgramData\. Trước đó, một tệp với cùng tên cũng đã được tạo trên host PAYOPS-WS-04 và được đổi tên thành svc_update.exe trước khi thực thi. Sự lặp lại về tên tệp và trình tự triển khai cho thấy attacker có thể đang sử dụng cùng một payload hoặc quy trình triển khai malware trên nhiều host.
 
@@ -1273,9 +1283,9 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="CO
 | sort _time
 ```
 
-![Kết quả truy vấn — 2.2. Process rundll32.exe (PID = 5600) — khởi chạy lúc 2026-04-21 00:30:46 (ảnh 71)](images/image71.png)
+![](images/image71.png)
 
-#### Các lệnh được thực thi từ beacon
+#### Các lệnh được thực thi bởi beacon con
 
 | Timestamp | Lệnh | Giải thích |
 |---|---|---|
@@ -1295,7 +1305,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="CO
 | sort _time
 ```
 
-![Kết quả truy vấn — Các lệnh được thực thi từ beacon (ảnh 72)](images/image72.png)
+![](images/image72.png)
 
 Chưa ghi nhận task được khởi chạy và stealer thực thi
 
@@ -1308,7 +1318,7 @@ index=main source="xmlwineventlog:microsoft-windows-sysmon/operational" host="PA
 | table _time TargetFilename
 ```
 
-![Kết quả truy vấn — Các lệnh được thực thi từ beacon (ảnh 73)](images/image73.png)
+![](images/image73.png)
 
 Tuy nhiên, chưa ghi nhận svc_update.exe được copy thành công sang PAYOPS-WS-04 từ COMP-FS-01, có thể đây là lí do mà beacon rundll32.exe (pid = 3904) trên PAYOPS-WS-04 drop cptchbuild.bin vào 2026-04-21 00:52:31
 
@@ -1322,7 +1332,7 @@ index=main source="xmlwineventlog:microsoft-windows-sysmon/operational" host="BC
 | sort _time
 ```
 
-![Kết quả truy vấn — 3.1. Services cc53f75.exe và 48047da.exe (ảnh 74)](images/image74.png)
+![](images/image74.png)
 
 Spawn ra 2 beacon con ngay sau khi khởi chạy: rundll32.exe (7828) và rundll32.exe (2436)
 
@@ -1332,7 +1342,7 @@ index=main source=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational host="BCHA
 | sort _time
 ```
 
-![Kết quả truy vấn — 3.1. Services cc53f75.exe và 48047da.exe (ảnh 75)](images/image75.png)
+![](images/image75.png)
 
 Tạo và kết nối tới pipe MSSE-7473-server và MSSE-9487-server
 
@@ -1348,9 +1358,9 @@ index=main source=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational host="BCHA
 | table _time Image ProcessId TargetFilename
 ```
 
-![Kết quả truy vấn — 3.2. Các beacon con rundll32.exe (PID = 7828, 2436) (ảnh 76)](images/image76.png)
+![](images/image76.png)
 
-![Kết quả truy vấn — 3.2. Các beacon con rundll32.exe (PID = 7828, 2436) (ảnh 77)](images/image77.png)
+![](images/image77.png)
 
 Vào 2026-04-21 01:49:23, beacon rundll32.exe (2436) drop stealer C:\ProgramData\vodkastealer_emulator.ps1
 
@@ -1359,7 +1369,7 @@ index=main source=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational host="BCHA
 | stats count by process_exec ProcessId DestinationIp DestinationPort
 ```
 
-![Kết quả truy vấn — 3.2. Các beacon con rundll32.exe (PID = 7828, 2436) (ảnh 78)](images/image78.png)
+![](images/image78.png)
 
 Duy trì beaconing tới c2 ip 100.52.249.75:443. Việc nhiều process đáng ngờ trên các host khác nhau kết nối tới cùng một external IP củng cố giả thuyết rằng attacker đang điều khiển các compromised endpoint thông qua một hạ tầng C2 chung.
 
@@ -1369,9 +1379,9 @@ index=main source=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational host="BCHA
 | sort _time
 ```
 
-![Kết quả truy vấn — 3.2. Các beacon con rundll32.exe (PID = 7828, 2436) (ảnh 79)](images/image79.png)
+![](images/image79.png)
 
-#### Các lệnh được thực thi trên BCHAIN-WS-11
+#### Các lệnh được thực thi bởi beacon con
 
 Beacon rundll32.exe (2436) spawn chạy các lệnh (tất cả chạy dưới danh tính SYSTEM):
 
@@ -1381,3 +1391,40 @@ Beacon rundll32.exe (2436) spawn chạy các lệnh (tất cả chạy dưới d
 | 2026-04-21 01:49:50 | `C:\Windows\system32\cmd.exe /C rename vodkastealer_emulator.ps1 svc_update.ps1` | Đổi tên script nhằm ngụy trang |
 | 2026-04-21 01:50:18 | `C:\Windows\system32\cmd.exe /C schtasks /create /tn "NextGen\DataSync Update" /tr "powershell.exe -nop -w hidden -ep bypass -File C:\ProgramData\svc_update.ps1 -SkipChecks" /sc daily /st 09:00 /ru SYSTEM /f` | Tạo task tên DataSync Update chạy script mỗi 9h sang dưới danh tính SYSTEM |
 | 2026-04-21 01:50:43 | `C:\Windows\system32\cmd.exe /C powershell -nop -ep bypass -File C:\ProgramData\svc_update.ps1 -SkipChecks -Verbose` | Chạy stealer qua powershell |
+
+# Mitre att&ck
+| Tactic | Technique | Bằng chứng |
+|---|---|---|
+| Execution | T1204.004 – User Execution: Malicious Copy and Paste | ClickFix |
+| Execution | T1059.001 – Command and Scripting Interpreter: PowerShell | Chạy lệnh powershell tải và thực thi http://3.122.229.6/payload.ps1. Sau đó attacker tiếp tục sử dụng powershell để thực thi reverse shell và VodkaStealer |
+| Execution | T1059.003 – Command and Scripting Interpreter: Windows Command Shell | Các process PowerShell và rundll32.exe liên tục khởi chạy cmd.exe /C để thực thi những lệnh như whoami, systeminfo, net, wmic, sc và schtasks |
+| Command and Control | T1105 – Ingress Tool Transfer | Tải thêm payload bao gồm Service.exe, cptchbuild.bin và vodkastealer_emulator.ps1  |
+| Command and Control | T1071.001 – Application Layer Protocol: Web Protocols | Liên tục kết nối tới 100.52.249.75:443 (HTTPS) |
+| Command and Control | T1571 – Non-Standard Port | Reverse TCP shell kết nối tới 165.245.213.184:4444 |
+| Discovery | T1033 – System Owner/User Discovery | Attacker thực thi lệnh whoami và whoami /all trên PAYOPS-WS-04, COMP-FS-01 và BCHAIN-WS-11 để xác định tài khoản, group và privileges |
+| Discovery | T1082 – System Information Discovery | Attacker thực thi systeminfo trên PAYOPS-WS-04 lúc 2026-04-20 23:31:41 nhằm thu thập thông tin cấu hình hệ thống |
+| Discovery | T1016 – System Network Configuration Discovery | Lệnh ipconfig /all được thực thi trên PAYOPS-WS-04 lúc 2026-04-20 23:31:55 để thu thập thông tin cấu hình mạng |
+| Discovery | T1087.002 – Account Discovery: Domain Account | Attacker sử dụng net user /domain để liệt kê các tài khoản thuộc domain NEXTGEN |
+| Discovery | T1069.002 – Permission Groups Discovery: Domain Groups | Attacker thực thi net group "Domain Admins" /domain và net group "Domain Computers" /domain để liệt kê thành viên các nhóm trong domain |
+| Discovery | T1007 – System Service Discovery | Attacker thực thi wmic service get name,pathname,startmode \| findstr /i "DataSync" để xác định cấu hình service DataSyncPro trước khi khai thác Unquoted Service Path |
+| Discovery | T1018 – Remote System Discovery | Attacker thực thi net view /domain:NEXTGEN, nltest /dclist:NEXTGEN và ping -n 1 BCHAIN-WS-11 nhằm tìm kiếm và kiểm tra khả năng tiếp cận các host nội bộ |
+| Discovery | T1057 – Process Discovery | Attacker sử dụng tasklist \| findstr svc_update để kiểm tra liệu payload svc_update.exe đã được khởi chạy hay chưa |
+| Execution / Stealth | T1574.009 – Hijack Execution Flow: Path Interception by Unquoted Path | Attacker khai thác lỗ hổng unquoted service path của service DataSyncPro  |
+| Execution | T1569.002 – System Services: Service Execution | Attacker khai thác DataSyncPro để thực thi payload. Ngoài ra, trên COMP-FS-01 và BCHAIN-WS-11, event id 7045 cùng các event process creation ghi nhận việc tạo và thực thi các service độc hại |
+| Stealth / Privilege Escalation | T1055 – Process Injection | Trên PAYOPS-WS-04, Sysmon event id 8 và 10 ghi nhận rundll32.exe (5328) truy cập lsass.exe với quyền cao và tạo remote thread trong process này, phù hợp với hành vi process injection |
+| Credential Access | T1003.001 – OS Credential Dumping: LSASS Memory | Các process rundll32.exe (5328, 6008, 9472, 7004) truy cập bộ nhớ lsass.exe với các access mask 0x1010 |
+| Lateral Movement | T1078.002 – Valid Accounts: Domain Accounts | Event ID 4624 Logon Type 3 trên COMP-FS-01 ghi nhận xác thực NTLM thành công từ PAYOPS-WS-04 bằng tài khoản k.mostafa.admin. Sau đó ghi nhận hoạt động remote service execution. |
+| Lateral Movement | T1550.002 – Use Alternate Authentication Material: Pass the Hash | Attacker dùng Pass-the-Hash để xác thực và tạo service độc hại trên các host |
+| Lateral Movement | T1021.002 – Remote Services: SMB/Windows Admin Shares | Các service độc hại được đặt vào ADMIN\$ share |
+| Persistence / Privilege Escalation | T1543.003 – Create or Modify System Process: Windows Service | Attacker cài đặt service độc hại trên COMP-FS-01 và BCHAIN-WS-11 |
+| Execution / Persistence / Privilege Escalation | T1053.005 – Scheduled Task/Job: Scheduled Task | Attacker sử dụng schtasks /create để tạo task NextGen\DataSync Update, thực thi svc_update.exe hoặc script svc_update.ps1 vào 09:00 hằng ngày dưới danh tính SYSTEM |
+| Stealth | T1036.004 – Masquerading: Masquerade Task or Service | Attacker đặt tên scheduled task là NextGen\DataSync Update, nhằm khiến task độc hại trông giống hoạt động cập nhật hợp lệ |
+| Stealth | T1036.005 – Masquerading: Match Legitimate Resource Name or Location | Payload cptchbuild.bin được đổi tên thành svc_update.exe; vodkastealer_emulator.ps1 được đổi tên thành svc_update.ps1, nhằm giả mạo thành trình cập nhật hợp lệ |
+| Discovery | T1614.001 – System Location Discovery: System Language Discovery | Hàm Invoke-PreFlightChecks của VodkaStealer kiểm tra keyboard layout liên quan đến Nga/Belarus |
+| Credential Access | T1555.003 – Credentials from Password Stores: Credentials from Web Browsers | Nội dung hàm Invoke-DataCollection cho thấy VodkaStealer nhắm tới dữ liệu trình duyệt, bao gồm các tệp cơ sở dữ liệu có thể chứa credentials, ví dụ: tệp "Login Data" |
+| Collection | T1113 – Screen Capture | PowerShell Event ID 4104 cho thấy VodkaStealer có chức năng thu thập screenshot và lưu kết quả dưới tên screenshot.png. Đây là khả năng xác định từ mã script; cần file artefact để xác nhận screenshot thực sự được tạo. |
+| Collection | T1005 – Data from Local System | Hàm Invoke-DataCollection được thiết kế để thu thập system information, installed software, dữ liệu trình duyệt và các tệp liên quan đến ví tiền điện tử từ máy bị nhiễm. Sysmon Event ID 11 ghi nhận các artefact được tạo trong staging directory. |
+| Collection | T1074.001 – Data Staged: Local Data Staging | VodkaStealer tạo các thư mục staging dạng C:\Windows\Temp\sysinfo_* để gom dữ liệu thu thập trước khi exfil |
+| Collection | T1560 – Archive Collected Data | Hàm Invoke-Exfiltration của VodkaStealer nén staging directory thành tệp zip trước khi gửi ra ngoài |
+| Exfiltration | T1041 – Exfiltration Over C2 Channel | Exfil dữ liệu tới 165.245.213.184:4444. Địa chỉ và port này cũng được sử dụng cho reverse TCP shell |
+| Stealth | T1070.004 – Indicator Removal: File Deletion | Sysmon event id 23 trên COMP-FS-01 ghi nhận 2fdb156.exe bị xóa ngay sau khi thực thi. Ngoài ra, hàm Invoke-SelfCleanup trong VodkaStealer có thực hiện xóa zip và staging directory sau khi gửi dữ liệu. |
