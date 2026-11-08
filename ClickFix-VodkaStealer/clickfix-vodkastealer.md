@@ -160,7 +160,11 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 
 Lúc 2026-04-20 23:36:15, drop thành công payload Service.exe vào thư mục “C:\Program Files\DataSync Pro\”
 
-Hash của Service.exe: SHA1=4C34F129ED36BD5ED21AB69683B8F5B348E8D504,MD5=6152E490837B7D32BDE1AE8C6152B117,SHA256=4A6EA38CDBBC99A51A06B1305CC833F8F93334EEE1E65CCC054E764BE4A1887A,IMPHASH=17B461A082950FC6332228572138B80C
+Hash của Service.exe: 
++ SHA1=4C34F129ED36BD5ED21AB69683B8F5B348E8D504
++ MD5=6152E490837B7D32BDE1AE8C6152B117
++ SHA256=4A6EA38CDBBC99A51A06B1305CC833F8F93334EEE1E65CCC054E764BE4A1887A
++ IMPHASH=17B461A082950FC6332228572138B80C
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/20/2026:23:25:00" latest="04/21/2026:23:42:00" process_id=5580 EventCode=3
@@ -218,9 +222,9 @@ index=main source="WinEventLog:System" host="PAYOPS-WS-04" "*C:\\Program Files\\
 
 DataSyncPro là một service được cấu hình tự động khởi chạy dưới danh tính SYSTEM khi hệ thống boot. Executable hợp lệ của service nằm tại: C:\Program Files\DataSync Pro\Sync Service\datasync-svc.exe
 
-Đường dẫn thực thi của một Windows service được lưu trong registry value ImagePath, thuộc key HKLM\SYSTEM\CurrentControlSet\Services\<ServiceName>.
+Đường dẫn thực thi của một Windows service được lưu trong registry value ImagePath, thuộc key HKLM\SYSTEM\CurrentControlSet\Services\\<ServiceName\>.
 
-Trong trường hợp này, ImagePath chứa một đường dẫn có khoảng trắng nhưng không được bao quanh bởi dấu ngoặc kép ("). Đây là lỗi cấu hình unquoted service path, khiến Windows có thể phân giải sai đường dẫn tệp thực thi đích khi Service Control Manager (SCM) khởi chạy service.
+Trong trường hợp này, ImagePath chứa một đường dẫn có khoảng trắng nhưng không được bao quanh bởi dấu ngoặc kép ("). Đây là lỗi cấu hình unquoted service path, khiến Windows có thể phân giải sai đường dẫn tệp thực thi đích khi Service Control Manager khởi chạy service.
 
 Cụ thể, với đường dẫn trên, Windows có thể lần lượt thử các executable sau:
 - C:\Program.exe
@@ -246,7 +250,7 @@ index=main host="PAYOPS-WS-04" earliest="04/20/2026:23:26:00" latest="04/20/2026
 
 Event id 1074 ghi nhận yêu cầu khởi động lại host PAYOPS-WS-04 được khởi tạo thông qua shutdown.exe vào 2026-04-20 23:41:23. Sự kiện này phù hợp với lệnh reboot được quan sát trong log process trước đó.
 
-### 1.4. Reverse shell powershell (PID = 14032) — khởi chạy lúc 2026-04-20 23:31:14
+### 1.4. Reverse shell powershell (pid = 14032) — khởi chạy lúc 2026-04-20 23:31:14
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/20/2026:23:31:14" process_id=14032 OR parent_process_id=14032 OR SourceProcessId=14032
@@ -326,7 +330,7 @@ index=main host="PAYOPS-WS-04" EventCode=4688 (Sync.exe OR *DataSync Pro*)
 
 Chưa ghi nhận thời gian chính xác service độc hại Sync.exe được thực thi bởi service.exe mà chỉ ghi nhận service độc hại này spawn ra một child process là rundll32.exe (pid = 3904) chạy dưới danh tính SYSTEM vào 2026-04-21 00:14:25. Điều này cho thấy attacker đã khai thác thành công lỗi cấu hình của service DataSyncPro để thực thi payload với đặc quyền SYSTEM.
 
-### 1.6. Process Sync.exe (PID = 3348)
+### 1.6. Process Sync.exe (pid = 3348)
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/21/2026:00:00:00" latest="04/21/2026:01:00:00" process_id=3348 OR parent_process_id=3348 OR SourceProcessId=3348
@@ -366,7 +370,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 
 Vào 2026-04-21 00:14:25, khởi tạo process rundll32.exe (3904) không có thêm bất kì tham số nào
 
-### 1.7. Process rundll32.exe (PID = 3904) — khởi chạy lúc 2026-04-21 00:14:25
+### 1.7. Process rundll32.exe (pid = 3904) — khởi chạy lúc 2026-04-21 00:14:25
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/21/2026:00:14:25" (process_id=3904 OR parent_process_id=3904 OR SourceProcessId=3904) {c73af8d8-c152-69e6-5d00-000000005900}
@@ -569,7 +573,7 @@ Ngay sau khi thành công tạo service độc hại từ xa, vào 2026-04-21 00
 
 Attacker đã thành công lateral movement sang COMP-FS-01
 
-#### Phase 2 — Triển khai svc_update.exe và Scheduled Task
+#### Phase 2 — Cố gắng thực thi svc_update.exe 
 
 | Timestamp | Lệnh | Giải thích |
 |---|---|---|
@@ -619,7 +623,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 
 2 beacon con rundll32.exe này chỉ duy trì beacon định kì tới c2 ip 100.52.249.75:443
 
-#### Phase 3 — Chuyển sang PowerShell stealer svc_update.ps1
+#### Phase 3 — Chuyển sang powershell stealer svc_update.ps1
 
 | Timestamp | Lệnh | Giải thích |
 |---|---|---|
@@ -638,7 +642,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 | 2026-04-21 01:37:09 | `C:\Windows\system32\rundll32.exe` | Spawn ra beacon con (pid = 8528) |
 | 2026-04-21 01:37:33 | `C:\Windows\system32\cmd.exe /C powershell -nop -ep bypass -File C:\ProgramData\svc_update.ps1 -SkipChecks -ExfilPort 4444 -Verbose` | Chạy lại script 1 lần nữa với command tương tự |
 
-#### Hoạt động của beacon con rundll32.exe (PID = 8528)
+#### Hoạt động của beacon con rundll32.exe (pid = 8528)
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/21/2026:01:37:00" (parent_process_id=8528 OR process_id=8528 OR SourceProcessId=8528)
@@ -1091,7 +1095,7 @@ Log suricata ghi nhận một flow TCP từ host 10.10.11.206 (BCHAIN-WS-11) t�
 
 Đoạn code thực thi chính (được đánh dấu bởi comment MAIN): Nếu cờ SkipChecks được bật, bỏ qua phase A và đặt IP/quốc gia mặc định là 10.0.0.1/US, sau đó gọi từng phase một theo thứ tự
 
-### 1.9. Hoạt động của các beacon con (PID = 3744, 11772)
+### 1.9. Hoạt động của các beacon con (3744, 11772)
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PAYOPS-WS-04" earliest="04/21/2026:01:38:00" process_id IN (3744, 11772) EventCode=17
@@ -1160,7 +1164,7 @@ Attacker tiếp tục sử dụng kĩ thuật pass-the-hash với credentials ch
 
 ## Host 2: COMP-FS-01 (10.10.11.81)
 
-### 2.1. Service 2fdb156.exe (PID = 3872) — khởi chạy lúc 2026-04-21 00:30:45
+### 2.1. Service 2fdb156.exe (pid = 3872) — khởi chạy lúc 2026-04-21 00:30:45
 
 ```spl
 index=main host="COMP-FS-01" earliest="04/20/2026:00:30:45" EventCode=4689
@@ -1216,7 +1220,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="CO
 
 Vào 2026-04-21 00:30:46, spawn ra beacon con rundll32.exe (5600) trước khi kết thúc. Chuỗi hành vi phù hợp với cơ chế của một loader: thực thi trong thời gian ngắn để khởi chạy payload khác, sau đó kết thúc trong khi payload tiếp tục hoạt động bên trong process được tạo.
 
-### 2.2. Process rundll32.exe (PID = 5600) — khởi chạy lúc 2026-04-21 00:30:46
+### 2.2. Process rundll32.exe (pid = 5600) — khởi chạy lúc 2026-04-21 00:30:46
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="COMP-FS-01" earliest="04/21/2026:00:30:46" process_id=5600 OR parent_process_id=5600 OR SourceProcessId=5600 {A55F24E4-C536-69E6-8313-00000000B503}
@@ -1332,7 +1336,7 @@ index=main source=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational host="BCHA
 
 Tạo và kết nối tới pipe MSSE-7473-server và MSSE-9487-server
 
-### 3.2. Các beacon con rundll32.exe (PID = 7828, 2436)
+### 3.2. Các beacon con rundll32.exe (7828, 2436)
 
 ```spl
 index=main source=XmlWinEventLog:Microsoft-Windows-Sysmon/Operational host="BCHAIN-WS-11" earliest="04/21/2026:01:39:00" (parent_process_id IN (7828, 2436) OR process_id IN (7828, 2436) OR SourceProcessId IN (7828, 2436))
