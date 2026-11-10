@@ -1134,9 +1134,9 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PA
 
 ![](images/image57.png)
 
-- Thực hiện truy cập memory process lsass.exe, nhiều khả năng là đánh cắp credentials rồi gửi dữ liệu qua named pipe vừa tạo cho beacon cha
+Thực hiện truy cập memory process lsass.exe, nhiều khả năng là đánh cắp credentials rồi gửi dữ liệu qua named pipe vừa tạo cho beacon cha
 
-- Trước đó, ta đã ghi nhận beacon cha rundll32.exe kết nối tới RPC endpoint mapper trên BCHAIN-WS-11 vào 2026-04-21 01:39:04 và 2026-04-21 01:44:43, ngay gần thời điểm quan sát thấy sự kiện dump lsass này cho thấy dấu hiệu credentials đã bị đánh cắp và bị lạm dụng để xác thực và thực thi lệnh từ xa trên host này
+Trước đó, ta đã ghi nhận beacon cha rundll32.exe kết nối tới RPC endpoint mapper trên BCHAIN-WS-11 vào 2026-04-21 01:39:04 và 2026-04-21 01:44:43, ngay gần thời điểm quan sát thấy sự kiện dump lsass này cho thấy dấu hiệu credentials đã bị đánh cắp và bị lạm dụng để xác thực và thực thi lệnh từ xa trên host này
 
 ```spl
 index=main host="BCHAIN-WS-11" earliest="04/21/2026:01:39:00" EventCode=7045
