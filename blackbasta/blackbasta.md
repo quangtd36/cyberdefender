@@ -347,7 +347,7 @@ index=main host=WS1 source="XmlWinEventLog:Microsoft-Windows-Windows Defender/Op
 ![alt text](images/image-10.png)
 Trên WS1, log Window defender không chứa bất kì event nào nên ta chưa thể xác nhận liệu attacker đã thành công thay đổi cấu hình window defender với event id 5007
  
-### 1.6 Process Pancake.jpg.exe (PID = 10292) - khởi chạy lúc 15:15:3 với IntegrityLevel = Medium
+### 1.6 Process Pancake.jpg.exe (PID = 10292) - khởi chạy lúc 2025-03-21 15:15:39 với IntegrityLevel = Medium
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:30" process_id=10292 OR SourceProcessId=10292 OR parent_process_id=10292
 | stats count by EventCode
@@ -389,9 +389,9 @@ Spawn ra các process thực hiện Discovery:
 | 15:21:46 | cmd /C net group "domain admins" /domain | Liệt kê toàn bộ thành viên thuộc group Domain Admins |
 | 15:22:46 | cmd /C net localgroup administrators | Liệt kê toàn bộ thành viên thuộc group Local Admins |
 
-### 1.7 Process Pancake.jpg.exe (PID = 10292) - khởi chạy lúc 15:15:3 với IntegrityLevel = High
+### 1.7 Process Pancake.jpg.exe (PID = 6320) - khởi chạy lúc 2025-03-21 15:23:21 với IntegrityLevel = High
 
-Lúc 2025-03-21 15:23:21, Pancake.jpg.exe được khởi chạy lần nữa với PID = 10292, lần này chạy ở IntegrityLevel = High tức thừa hưởng elevated token từ phiên login của user knixon. Process tree lúc trước cho biết parent của process này là explorer.exe, dấu hiệu cho thấy nó được thực thi thông qua GUI. Giả thuyết ở đây là user bị đánh lừa bởi bề ngoài hiển thị của tệp, 1 ảnh jpg, click vào binary ngụy trang, cửa sổ UAC hiện lên và user click yes cho phép process chạy với elevated token
+Lúc 2025-03-21 15:23:21, Pancake.jpg.exe được khởi chạy lần nữa với PID = 6320, lần này chạy ở IntegrityLevel = High tức thừa hưởng elevated token từ phiên login của user knixon. Process tree lúc trước cho biết parent của process này là explorer.exe, dấu hiệu cho thấy nó được thực thi thông qua GUI. Giả thuyết ở đây là user bị đánh lừa bởi bề ngoài hiển thị của tệp, 1 ảnh jpg, click vào binary ngụy trang, cửa sổ UAC hiện lên và user click yes cho phép process chạy với elevated token
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:23:00" process_id=6320 EventCode=3
@@ -426,7 +426,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 ```
 
 ![alt text](images/image-19.png)
-Vào 2025-03-21 15:23:21 và 2025-03-21 15:23:22, process Pancake.jpg.exe (PID =6320) lần lượt tạo và kết nối tới pipe MSSE-5028-server, sau đó, vào 2025-03-21 16:04:21, khoảng 30 phút sau, kết nối tới pipe postex_2198. Trong đó, pipe dạng postex_#### thường được các cobalt strike beacon sử dụng cho các hoạt động post-exploitation. Trong hoạt động này, beacon cha sẽ spawn ra các beacon con (thường dưới dạng 1 process rundll32.exe bị chèn code), 2 beacon sẽ giao tiếp/trao đổi dữ liệu thông qua 1 named pipe. Ta sẽ check xem process nào tạo pipe postex này:
+Vào 2025-03-21 15:23:21 và 2025-03-21 15:23:22, process Pancake.jpg.exe (PID = 6320) lần lượt tạo và kết nối tới pipe MSSE-5028-server, sau đó, vào 2025-03-21 16:04:21, khoảng 30 phút sau, kết nối tới pipe postex_2198. Trong đó, pipe dạng postex_#### thường được các cobalt strike beacon sử dụng cho các hoạt động post-exploitation. Trong hoạt động này, beacon cha sẽ spawn ra các beacon con (thường dưới dạng 1 process rundll32.exe bị chèn code), 2 beacon sẽ giao tiếp/trao đổi dữ liệu thông qua 1 named pipe. Ta sẽ check xem process nào tạo pipe postex này:
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:23:00" EventCode IN (17, 18) "postex_2198"
