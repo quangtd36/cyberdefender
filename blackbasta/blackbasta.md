@@ -264,6 +264,8 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host=WS1
 
 Vào 2025-03-21 15:15:31,  ghi nhận Wscript.exe (1848) thực hiện kết nối tới external IP là 54.93.105.22 trên port 80 (giao thức HTTP) nhằm trà trộn vào traffic thông thường
 
+Kết luận
+
 ### 1.5 Process regsvr32.exe (PID = 8592) – khởi chạy bởi WScript.exe (PID = 1848) vào 2025-03-21 15:15:34
 
 ```spl
