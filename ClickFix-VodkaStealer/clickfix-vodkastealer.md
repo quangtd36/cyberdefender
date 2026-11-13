@@ -537,7 +537,14 @@ index=main source="WinEventLog:Security" host="COMP-FS-01" earliest="04/21/2026:
 
 ![](images/image37.png)
 
-Trong cùng thời điểm, vào 2026-04-21 00:30:45, ghi nhận logon thành công từ 10.10.11.252 (PAYOPS-WS-04) trên COMP-FS-01 với logon type 3 (network logon – dấu hiệu xác thực qua mạng để chạy lệnh), tài khoản được sử dụng là k.mostafa.admin (S-1-5-21-546352951-3134867265-500606796-1197), phương thức xác thực được sử dụng là NTLM thay vì kerberos. Nhiều khả năng sau khi đánh cắp được password hash của user k.mostafa.admin từ process lsass.exe, attacker đã thực hiện kĩ thuật pass-the-hash để xác thực và truy cập các hệ thống khác mà không cần biết plaintext password
+```spl
+index=main source="WinEventLog:Security" host="DC01" earliest="04/21/2026:00:30:00" latest="04/21/2026:00:32:00" EventCode=4776
+| table _time PackageName TargetUserName Workstation Status Computer
+```
+![alt text](./images/image80.png)
+
+
+Trong cùng thời điểm, vào 2026-04-21 00:30:45, ghi nhận logon thành công từ 10.10.11.252 (PAYOPS-WS-04) trên COMP-FS-01 với logon type 3 (network logon – dấu hiệu xác thực qua mạng để chạy lệnh), tài khoản được sử dụng là k.mostafa.admin (S-1-5-21-546352951-3134867265-500606796-1197), phương thức xác thực được sử dụng là NTLM thay vì kerberos. Hơn nữa, event id 4776 trên DC01 cũng ghi nhận 2 sự kiện xác thực credentials cho k.mostafa.admin vào cùng thời điểm tương ứng với 2 event 4624 - đăng nhập thành công trên COMP-FS-01. Nhiều khả năng sau khi đánh cắp được password hash của user k.mostafa.admin từ process lsass.exe, attacker đã thực hiện kĩ thuật pass-the-hash để xác thực và truy cập các hệ thống khác mà không cần biết plaintext password
 
 ```spl
 index=main host="COMP-FS-01" earliest="04/21/2026:00:27:25" latest="04/21/2026:00:35:00" EventCode=4672
