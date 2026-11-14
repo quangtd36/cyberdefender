@@ -100,15 +100,6 @@ Mở Chrome History (vị trí: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\
 
 Khoảng 50 giây trước khi câu lệnh powershell trên được thực thi, Chrome History ghi nhận user truy cập url `https://muahmmedshahblis.github.io/blabla/` lúc 2025-08-04 18:38:01 với title **Verify You Are Human** cho thấy khả năng cao website đang yêu cầu user giải 1 captcha. Những hành vi process và lịch sử duyệt web quan sát được đều cho thấy user william đã bị đánh lừa bởi kĩ thuật ClickFix.
 
-#### Timeline — ClickFix
-
-| Timestamp | Sự kiện |
-|---|---|
-| 2025-08-04 18:36:48 | Chrome được khởi chạy trên PC01 |
-| 2025-08-04 18:38:01 | Browser History ghi nhận user truy cập url `https://muahmmedshahblis.github.io/blabla/` |
-| 2025-08-04 18:38:51 | Câu lệnh powershell độc hại chạy qua hộp thoại Run |
-| 2025-08-04 18:39:15 | Powershell khởi chạy `set-up.exe` |
-
 ### 1.2. Thông tin phiên đăng nhập của `william`
 
 ```spl
@@ -282,8 +273,6 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Bits-Client/Operational" hos
 ![](images/image19.png)
 
 BITS Event ID 4 ghi nhận job hoàn thành việc tải script `Hose.cmd` lúc 2025-08-04 18:39:16, với độ lớn của tệp được xác định qua trường `bytesTransferred=1622`. Kết hợp việc `cmd.exe` được khởi chạy cùng thời điểm, các sự kiện này hỗ trợ việc tệp được tải và được thực thi ngay lập tức.
-
-**Nhận xét:** Trong khoảng 26 giây thực thi, PowerShell đã triển khai `set-up.exe`, thiết lập Run Key `5TQjtTuo`, tải `Hose.cmd` bằng BITS và khởi chạy batch script. Những hành vi này thể hiện một loader nhiều giai đoạn có cả bước tạo persistence.
 
 ### 1.5. Thực thi script `Hose.cmd` 
 
@@ -758,71 +747,55 @@ Dựa vào trường CreatedTime trong MFT và các filter phù hợp ta xác đ
 
 ![](images/image56.png)
 
-# Attack Timeline
+# Incident Timeline – CredSnare / Angry Likho APT Lab
 
-| Timestamp | Host | Attack Stage | Bằng chứng / diễn biến |
-|---|---|---|---|
-| 2025-08-04 18:38:01 | PC01 | Initial Access | Chrome truy cập trang Verify You Are Human |
-| 2025-08-04 18:38:51 | PC01 | Execution | RunMRU và Sysmon 1: PowerShell tải `win15.ps1` |
-| 2025-08-04 18:39:14–18:39:16 | PC01 | Payload Delivery / Persistence | `set-up.exe` được tạo và chạy; Run Key được ghi; BITS tải `Hose.cmd` |
-| 2025-08-04 18:39:17–18:39:24 | PC01 | Payload Reconstruction | `Hose.cmd` kiểm tra security processes và tạo `suggests.a3x` |
-| 2025-08-04 18:40:17 | PC01 | Network Discovery | `set-up.exe` kết nối tới DC01 trên TCP/135 |
-| 2025-08-04 18:44–18:47 | PC01 | Discovery | `whoami`, `net user /domain`, `net group`, `cmdkey`, `ping` |
-| 2025-08-04 18:48:35–18:53:45 | PC01 | DLL Side-Loading | `DismCore.dll` được tạo; `Dism.exe` nạp DLL và khởi chạy `rundll32.exe` |
-| 2025-08-04 18:54:51 | PC01 | Persistence | Tạo task `DISMCORE` |
-| 2025-08-04 18:55–19:01 | PC01 | AD Discovery | PowerShell chạy `Get-NetUser -TrustedToAuth` |
-| 2025-08-04 19:03:41 | PC01 | Credential Access (nghi vấn) | `set-up.exe` truy cập LSASS (`0x1010`) |
-| 2025-08-04 19:41:46 | DC01 | Lateral Movement | Kerberos authentication liên quan `webservice` và Administrator |
-| 2025-08-04 19:41:58–19:42:34 | DC01 | Remote Execution | Lệnh chạy qua `WmiPrvSE.exe`; tải `cache.cab` |
-| 2025-08-04 19:44:35–19:45:25 | DC01 | Persistence | Tạo task `Wow64 Subsystem` chạy `mswow86.exe` |
-| 2025-08-04 19:47:20 | DC01 | AD Discovery | Thực thi PingCastle healthcheck; có report HTML/XML |
-| 2025-08-04 19:57:19 | DC01 | Account Creation | `createuser.exe` liên quan Event ID 4720 tạo `localend` |
-| 2025-08-04 19:59:21–19:59:44 | DC01 | AD Data Collection | Thực thi `1.bat`/`ntdsutil`, nén staging bằng PowerShell |
-
-# MITRE ATT&CK Mapping
-
-| Tactic | Technique | Bằng chứng |
-|---|---|---|
-| Execution | T1204.004 — User Execution: Malicious Copy and Paste | RunMRU + Chrome History + PowerShell child of explorer; phù hợp ClickFix |
-| Execution | T1059.001 — PowerShell | `win15.ps1`, `Get-NetUser`, `Invoke-WebRequest`, `Compress-Archive` |
-| Execution | T1059.003 — Windows Command Shell | `Hose.cmd` và các `cmd.exe /c` child processes |
-| Persistence | T1547.001 — Registry Run Keys / Startup Folder | HKCU Run value `5TQjtTuo` trỏ tới `set-up.exe` |
-| Defense Evasion / Persistence | T1197 — BITS Jobs | BITS job tải `Hose.cmd`; chưa thấy dấu hiệu BITS được dùng để persistence dài hạn |
-| Discovery | T1518.001 — Security Software Discovery | `tasklist \| findstr /I "wrsa opssvc"` |
-| Execution | T1574.002 — DLL Side-Loading | Sysmon Event ID 7: `Dism.exe` nạp `DismCore.dll` từ `C:\Users\Public` |
-| Credential Access | T1003.001 — LSASS Memory | Sysmon Event ID 10: `set-up.exe` truy cập LSASS; chưa xác nhận dump thành công |
-| Discovery | T1087.002 — Domain Account Discovery | `net user /domain`, PowerView `Get-NetUser -TrustedToAuth` |
-| Execution | T1047 — Windows Management Instrumentation | Các process được `WmiPrvSE.exe` khởi chạy trên DC01; phù hợp WMI remote execution |
-| Persistence | T1053.005 — Scheduled Task | Task `DISMCORE` trên PC01 và `Wow64 Subsystem` trên DC01 |
-| Credential Access | T1003.003 — NTDS | Các lệnh ntdsutil cùng MFT artefacts ntds.dit và hives trên DC01; chưa xác nhận exfiltration |
-| Discovery | T1082 — System Information Discovery | `whoami /all`, host/system reconnaissance |
-| Collection | T1005 — Data from Local System | Sao chép NTDS database và registry hives theo MFT |
-| Collection | T1560.001 — Archive via Utility | PowerShell `Compress-Archive` với `C:\Users\Public\ntdsutil` |
+| Timestamp | Tactic | Technique ID | Technique / Sub-technique | Bằng chứng liên quan |
+|---|---|---|---|---|
+| 2025-08-04 18:38:01–18:38:51 | Initial Access / Execution | T1204.004 | User Execution: Malicious Copy and Paste | **PC01:** Chrome History ghi nhận user truy cập 1 trang với title *Verify You Are Human* (`muahmmedshahblis.github.io/blabla/`), sau đó key RunMRU và sysmon event id 1 ghi nhận vào khoảng 18:38:51 cho thấy 1 lệnh powershell được thực thi qua hộp thoại Run. |
+| 2025-08-04 18:38:51–18:39:15 | Execution / Command and Control | T1059.001 / T1105 | PowerShell / Ingress Tool Transfer | **PC01:** `explorer.exe → powershell.exe`; Lệnh powershell độc hại ban đầu tải và chạy script `win15.ps1` từ `10.10.5.199`, tạo `set-up.exe` lúc 18:39:14 rồi khởi chạy lúc 18:39:15 (Sysmon 1, 3, 11; Security 4688). |
+| 2025-08-04 18:39:16 | Persistence | T1547.001 | Registry Run Keys / Startup Folder | **PC01:** Sysmon 13 ghi nhận giá trị `5TQjtTuo` được thêm vào Run Key trong hive HKCU với giá trị =  `C:\Users\william\AppData\Roaming\7oCDTWYu\set-up.exe`. |
+| 2025-08-04 18:39:16 | Defense Evasion / Execution | T1197 / T1059.003 | BITS Jobs / Windows Command Shell | **PC01:** Attacker tạo BITS job tải `Hose.cmd` từ `10.10.5.199/payload/hose.cmd` về `C:\ProgramData\Hose.cmd`. Sau đó khởi chạy qua lệnh `cmd.exe /c C:\ProgramData\Hose.cmd` (Sysmon 1). |
+| 2025-08-04 18:39:17–18:39:24 | Discovery / Command and Control | T1518.001 / T1105 | Security Software Discovery / Ingress Tool Transfer | **PC01:** `Hose.cmd` chạy `tasklist` và `findstr /I "wrsa opssvc"` nhằm kiểm tra phần mềm bảo mật; tải tám phần payload qua powershell rồi ghép thành `suggests.a3x` (Sysmon 1, MFT). |
+| 2025-08-04 18:40:15–18:40:17 | Discovery | T1018 | Remote System Discovery | **PC01:** `set-up.exe` thực hiện truy vấn DNS `DC01/CORP.lab` lấy ip DC (Sysmon 22) và kết nối tới `10.10.11.155:135` (Sysmon 3) |
+| 2025-08-04 18:44:02–18:46:26 | Discovery / Credential Access | T1033 / T1087.002 / T1069.002 / T1016 / T1057 / T555.004 | System Owner/User Discovery / Domain Account Discovery / Domain Groups / System Network Configuration Discovery / Process Discovery / Credentials from Password Stores: Windows Credential Manager | **PC01:** `set-up.exe` chạy lệnh `whoami /all`, `net user /domain`, `net group "Domain Admins" /domain`, `cmdkey /list`, `ping DC01`, `arp -a`, `tasklist | find ssh` và truy vấn SYSVOL (Sysmon 1). |
+| 2025-08-04 18:48:35–18:53:45 | Stealth, Execution | T1574.001 / T1218 | Hijack Execution Flow: DLL Side-Loading / System Binary Proxy Execution: Rundll32 | **PC01:** Dll giả mạo `DismCore.dll` được đặt trong `C:\Users\Public`, `Dism.exe` được sao chép vào cùng thư mục rồi thực thi, sau đó, chạy process con rundll32.exe (15468) (Sysmon 7, Sysmon 1). |
+| 2025-08-04 18:53:46–18:53:47 | Command and Control | - | - | **PC01:** `rundll32.exe` ((15468)) kết nối tới `10.10.5.195` trên 2 port 1337 và 9900, đồng thời giao tiếp RPC với DC01 (Sysmon 3). |
+| 2025-08-04 18:54:51 | Persistence | T1053.005 | Scheduled Task/Job: Scheduled Task | **PC01:** `schtasks.exe /create /sc onlogon /tn DISMCORE /rl highest /tr C:\Users\Public\Dism.exe`; artefact trong thư mục `C:\Windows\System32\Tasks` xác nhận task `DISMCORE` được tạo. |
+| 2025-08-04 18:55:14–19:00:53 | Discovery | T1087.002 | Account Discovery: Domain Account | **PC01:** Attacker nhiều lần chạy powershell tải `MSOfficeSyncService.ps1` / `PowerView.ps1` và gọi `Get-NetUser -TrustedToAuth` để tìm các domain account có bật tính năng protocol-transition delegation (Sysmon 1). |
+| 2025-08-04 19:03:41 | Credential Access | T1003.001 | OS Credential Dumping: LSASS Memory | **PC01:** Sysmon 10 ghi nhận `set-up.exe` truy cập `lsass.exe`. |
+| 2025-08-04 19:41:46 | Lateral Movement | - | - | **DC01:** Attacker lạm dụng tính năng protocol transition nhằm giả mạo user Administrator truy cập DC01 (Security 4624/4768/4769). |
+| 2025-08-04 19:41:58–19:42:01 | Lateral Movement / Execution | T1047 | Windows Management Instrumentation | **DC01:** Attacker sử dụng công cụ `wmiexec.py` để thực thi lệnh từ xa trên DC01 (Sysmon 1). |
+| 2025-08-04 19:42:34–19:43:31 | Command and Control | T1105 | Ingress Tool Transfer | **DC01:** Attacker dùng `certutil` tải tệp `cache.cab` về `C:\ProgramData`, giải nén ra thư mục `C:\ProgramData\schcache`. MFT ghi nhận `mswow86.exe` trong thư mục output (Sysmon 1, MFT). |
+| 2025-08-04 19:44:35–19:45:25 | Persistence | T1053.005 | Scheduled Task/Job: Scheduled Task | **DC01:** Hai lần chạy lệnh tạo task `Wow64 Subsystem` để chạy `C:\ProgramData\schcache\mswow86.exe`. Disk artefact xác nhận task tồn tại. |
+| 2025-08-04 19:46:23–19:47:21 | Discovery | - | - | **DC01:** Attacker dùng `certutil` tải và thực thi công cụ `PingCastle.exe` lúc 19:47:20. (Sysmon 1/3, MFT trên DC)|
+| 2025-08-04 19:57:01–19:57:19 | Persistence | T1136.002 | Create Account: Domain Account | **DC01:** Tiếp tục dùng `certutil` tải `install.exe` dưới tên `createuser.exe`, sau đó thực thi; Security 4720 ghi nhận việc sự kiện domain account `localend` (Sysmon 1, Security 4720).  |
+| 2025-08-04 19:59:03–19:59:21 | Credential Access / Collection | T1003.003 / T1005 | OS Credential Dumping: NTDS / Data from Local System | **DC01:** Attacker dùng công cụ `ntdsutil` để dump NTDS.dit cùng với 2 hive SYSTEM và SECURITY để decrypt. |
+| 2025-08-04 19:59:44 | Collection | T1560.001 | Archive Collected Data: Archive via Utility | **DC01:** Dùng powershell nén thư mục ntdsutil thành INFO_20250730.zip. |
 
 # Indicators of Compromise (IOC)
 
 | Loại | Giá trị |
 |---|---|
-| URL — ClickFix | `https://muahmmedshahblis.github.io/blabla/` |
-| URL — PowerShell loader | `http://10.10.5.199/payload/win15.ps1` |
-| URL — BITS download | `http://10.10.5.199/payload/hose.cmd` |
-| IP:Port — Payload Delivery | `10.10.5.199:80` |
-| IP:Port — Suspected C2 | `10.10.5.195:9001` |
-| IP:Port — C2 activity | `10.10.5.195:1337` |
-| IP:Port — C2 activity | `10.10.5.195:9900` |
-| File Path | `C:\Users\william\AppData\Roaming\7oCDTWYu\set-up.exe` |
+| URL  | `https://muahmmedshahblis.github.io/blabla/` |
+| URL  | `http://10.10.5.199/payload/win15.ps1` |
+| URL  | `http://10.10.5.199/payload/hose.cmd` |
+| IP:Port  | `10.10.5.199:80` |
+| IP:Port  | `10.10.5.195:9001` |
+| IP:Port  | `10.10.5.195:1337` |
+| IP:Port  | `10.10.5.195:9900` |
+| File  | `C:\Users\william\AppData\Roaming\7oCDTWYu\set-up.exe` |
 | SHA256 — set-up.exe | `54FF153C79F9F26D5D0C32F3CD2273BC446B069718D3808F6231724B467FA6F9` |
 | MD5 — set-up.exe | `233AA109B504538A08D9C14E0F021A30` |
-| File Path | `C:\Users\Public\DismCore.dll` |
+| File  | `C:\Users\Public\DismCore.dll` |
 | SHA256 — DismCore.dll | `83B98B9E32630816DD3066266F9BC5BB76EAE1D61913C8B775F8A74BB82C0433` |
-| File Path | `C:\ProgramData\Hose.cmd` |
-| File Name | `suggests.a3x` |
+| File  | `C:\ProgramData\Hose.cmd` |
+| File  | `suggests.a3x` |
 | Registry Run Value | `5TQjtTuo` |
 | Scheduled Task | `DISMCORE` |
 | Scheduled Task | `Wow64 Subsystem` |
-| File Path | `C:\ProgramData\schcache\mswow86.exe` |
-| File Path | `C:\Users\Administrator\Documents\createuser.exe` |
+| File  | `C:\ProgramData\schcache\mswow86.exe` |
+| File  | `C:\Users\Administrator\Documents\createuser.exe` |
 | Domain Account — Created | `CORP\localend` |
-| File Path | `C:\INFO_20250730.zip` |
+| File Pth | `C:\INFO_20250730.zip` |
 | Disk Artefact — ZIP | `bFylC6zX.zip` |
 | Disk Artefact — Messaging cache | `token000005.ldb` |
