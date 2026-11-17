@@ -386,3 +386,15 @@ Tuy nhiên, chưa ghi nhận **event id 21** nào (WMI binding giữa filter và
 | 2023-10-16 07:58:09 | Defense Evasion | - | - | Khởi chạy 1 lệnh PowerShell (PID 8424) xóa biến môi trường oIRcXpum sau khi thực thi (Sysmon Event 1). |
 
 # IOC
+
+| Loại | Giá trị |
+|---|---|
+| IP | `10.0.0.154` |
+| C2 IP | `85.214.121.47` |
+| C2 Port | `8080` |
+| Service account | `SQLService`, `FileShareService` |
+| Account | `johndoe@CYBERCACTUS.LOCAL` |
+| Service  | `iOOEDsXjWeGRAyGl`, `YeDIRrUiXDmvRLyq` |
+| WMI Event Consumer | `Updater` |
+| WMI Event Filter | `Updater` |
+| Environment variable | `oIRcXpum` |
