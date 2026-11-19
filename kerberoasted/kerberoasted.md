@@ -91,8 +91,8 @@ Vào **2023-10-16 07:48:07.456**, ghi nhận một event đăng nhập thành c�
 
 Sau đó, attacker dùng máy Kali để **RDP vào DC01** với tài khoản `SQLService` đã đánh cắp được. Quá trình xác thực RDP diễn ra theo chuẩn **NLA (Network Level Authentication)**:
 
-1. **07:50:25.377** — Xác thực qua mạng sử dụng giao thức **CredSSP** (giao thức dùng để truyền thông tin đăng nhập Kerberos hoặc NTLM từ client sang server trong phiên RDP). Source workstation: `kali` (`10.0.0.154`), giao thức **NTLM**.
-2. **07:50:29.129–07:50:29.134** — Sau khi xác thực thành công, server thực hiện yêu cầu **TGT** và **TGS** cho tài khoản đăng nhập với DC. Vì DC chính là server RDP nên hai vé này được cấp nội bộ trên cổng loopback (`::1`) để chuẩn bị môi trường nạp profile user `SQLService`.
+1. **07:50:25.377** — Xác thực qua mạng sử dụng giao thức **CredSSP** (giao thức dùng để truyền thông tin đăng nhập Kerberos hoặc NTLM từ client sang server trong phiên RDP). Ở đây, Source workstation = `kali` (`10.0.0.154`), giao thức sử dụng là **NTLM**.
+2. **07:50:29.129–07:50:29.134** — Sau khi xác thực thành công, server thực hiện yêu cầu **TGT** và **TGS** cho tài khoản đăng nhập với DC. Vì DC chính là server mà attacker RDP vào nên hai vé này được cấp nội bộ trên cổng loopback (`::1`) để chuẩn bị môi trường nạp profile cho user `SQLService`.
 3. **07:50:29.151** — Đăng nhập RDP thành công, event id 4624 với **Logon Type 10** được sinh ra trên DC. Do service account (`SQLService`) có đặc quyền cao, **UAC tách làm 2 token**: `0x180a36` (elevated) và `0x180a0e` (restricted).
 
 ### 3. Service độc hại thứ nhất — `iOOEDsXjWeGRAyGl`
