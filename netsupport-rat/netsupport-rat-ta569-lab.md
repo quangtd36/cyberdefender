@@ -92,7 +92,7 @@ index=main source="XmlWinEventLog:Security" host="IT-WS01"
 
 Trong log được cung cấp, không ghi nhận record nào liên quan đến phiên đăng nhập của user `danderson` 
 
-### 2. Process tree
+### 3. Process tree
 ```sql
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" host="IT-WS01" EventCode=1 earliest="07/17/2025:19:37:00"
 | table _time host user IntegrityLevel LogonId parent_process_id parent_process_path process_id CommandLine
@@ -191,7 +191,7 @@ index=main source=XmlWinEventLog:Security host="IT-WS01" earliest="07/17/2025:19
 
 ```
 
-### 3. Process `wscript.exe` — JScript Loader
+### 4. Process `wscript.exe` — JScript Loader
 
 Ghi nhận 2 instance wscript.exe chạy Invoice_2326.js: **PID:** 12380, 13924 — **Thời điểm khởi chạy:** 2025-07-17 19:39:23, 19:40:39
 
@@ -218,7 +218,7 @@ Lệnh này tải script `update.ps1` từ `http://10.10.5.142/update.ps1` rồi
 - `-NoProfile`: Bỏ qua việc nạp PowerShell profile
 - `-WindowStyle Hidden`: Ẩn cửa sổ PowerShell thực thi
 
-### 4. Process `powershell.exe` — Dropper/Loader
+### 5. Process `powershell.exe` — Dropper/Loader
 
 2 instance powershell tương ứng với 2 lần wscript chạy: **PID:** 10192, 4876 — **Thời điểm khởi chạy:** 2025-07-17 19:39:23, 19:40:39
 
@@ -246,7 +246,7 @@ Thống kê Sysmon event id liên quan đến hai process này:
 
 Cả hai process đều kết thúc chỉ vài giây sau khi khởi chạy. Hành vi ghi nhận được sau đó từ chúng bao gồm: drop payload, thiết lập persistence qua Run Key rồi kết thúc ngay cho thấy script update.ps1 đóng vai trò một **loader giai đoạn đầu**, có nhiệm vụ duy nhất là triển khai và khởi chạy payload chính.
 
-#### 4.1. Kết nối mạng
+#### 5.1. Kết nối mạng
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
@@ -261,7 +261,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
 
 Vào **2025-07-17 19:39:29**, process `powershell.exe` (PID 10192) kết nối tới `10.10.5.142:80` — đây là kết nối tải script `update.ps1`.
 
-#### 4.2. File Creation — Payload drop
+#### 5.2. File Creation — Payload drop
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
@@ -283,7 +283,7 @@ Cả hai process đều tạo thư mục có tên ngẫu nhiên trong `AppData\R
 
 Payload được đặt tên `netsupport.exe`, có thể nhằm giả mạo phần mềm quản trị từ xa hợp lệ **NetSupport Manager** vốn được thiết kế cho IT Support.
 
-#### 4.3. File hash
+#### 5.3. File hash
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
@@ -306,7 +306,7 @@ Hash của `netsupport.exe`:
 
 VirusTotal không có thông tin về binary này.
 
-#### 4.4. Persistence — Registry Run Key
+#### 5.4. Persistence — Registry Run Key
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
@@ -321,7 +321,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
 
 Vào **2025-07-17 19:40:41**, process `powershell.exe` (PID 4876) thêm 1 value với tên `NetSupport` vào **Run Key** thuộc HKCU (chỉ có tác dụng đối với user `danderson`), value này có giá trị trỏ tới đường dẫn `C:\Users\danderson\AppData\Roaming\hkcJM8qC\netsupport.exe`.
 
-#### 4.5. Khởi chạy RAT
+#### 5.5. Khởi chạy RAT
 
 ```spl
 index=main host="IT-WS01" earliest="07/17/2025:19:37:00"
@@ -351,7 +351,7 @@ index=main host="IT-WS01" earliest="07/17/2025:19:40:00"
 
 Chưa ghi nhận Run Key kích hoạt và khởi chạy `netsupport.exe` thêm lần nào.
 
-### 5. Process `netsupport.exe` (PID 12792) — RAT chính
+### 6. Process `netsupport.exe` (PID 12792) — RAT chính
 
 **Thời điểm khởi chạy:** 2025-07-17 19:40:41
 
@@ -376,7 +376,7 @@ Thống kê Sysmon event id liên quan đến process này:
 
 ![](images/image17.png)
 
-#### 5.1. Thời gian hoạt động
+#### 6.1. Thời gian hoạt động
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
@@ -389,7 +389,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
 
 Process `netsupport.exe` kết thúc vào **2025-07-18 08:43:56** — tổng cộng khoảng **13 tiếng** hoạt động liên tục. Thời gian hoạt động kéo dài kết hợp với các kết nối mạng liên tục xác nhận đây là một malware thuộc loại **RAT (Remote Access Trojan)**, duy trì kết nối và nhận lệnh từ C2.
 
-#### 5.2. Kết nối C2
+#### 6.2. Kết nối C2
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
@@ -415,7 +415,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
 
 Process `netsupport.exe` liên tục duy trì kết nối tới C2 `10.10.5.100:9001`. Ngoài ra, vào **2025-07-17 19:41:43**, ghi nhận kết nối tới DC01 (`10.10.11.216`) qua port 135 (RPC Endpoint Mapper) để hỏi port động, sau đó kết nối tới port 49667 để gọi hàm RPC từ xa.
 
-#### 5.3. Các lệnh thực thi từ C2
+#### 6.3. Các lệnh thực thi từ C2
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
@@ -430,7 +430,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
 
 Tất cả các lệnh sau đều được thực thi dưới danh tính `danderson` với Integrity Level = **High**:
 
-##### 5.3.1. Discovery (19:44 – 20:08)
+##### 6.3.1. Discovery (19:44 – 20:08)
 
 | Thời gian | Lệnh | Mô tả |
 |---|---|---|
@@ -451,7 +451,7 @@ Tất cả các lệnh sau đều được thực thi dưới danh tính `dander
 | 20:03:40 | `tasklist` | Liệt kê process đang chạy |
 | 20:08:17 | `whoami /all` | Kiểm tra lại thông tin chi tiết user `danderson` |
 
-##### 5.3.2. Tải và thực thi `install.bat` (20:17 – 20:29)
+##### 6.3.2. Tải và thực thi `install.bat` (20:17 – 20:29)
 
 | Thời gian | Lệnh | Mô tả |
 |---|---|---|
@@ -461,7 +461,7 @@ Tất cả các lệnh sau đều được thực thi dưới danh tính `dander
 
 ---
 
-### 6. Thực thi `install.bat` — SSH Tunnel Setup
+### 7. Thực thi `install.bat` — SSH Tunnel Setup
 
 **PID cmd.exe:** 9844
 
@@ -476,7 +476,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
 
 Script `install.bat` drop binary SSH client (`ssh.exe`) và SSH server (`sshd.exe`) vào thư mục `C:\ProgramData\sshd\`. Có thể lệnh `tasklist | find ssh` trước đó không cho thấy thấy SSH server đang chạy, nên attacker quyết định tự triển khai.
 
-#### 6.1. Scheduled Task — Reverse SSH Tunnel
+#### 7.1. Scheduled Task — Reverse SSH Tunnel
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
@@ -514,7 +514,7 @@ Task chạy **mỗi 1 phút** với quyền hạn cao nhất (`/rl highest`) nh�
 
 **`StrictHostKeyChecking`:** Khi SSH vào server lần đầu, client nhận host key và đối chiếu thông tin đã lưu trong tệp `~/.ssh/known_hosts`. Với giá trị `no`, SSH vẫn kết nối ngay cả khi host key bị thay đổi — giúp attacker thiết lập kết nối tự động mà không cần xác nhận bằng tay.
 
-#### 6.2. Scheduled Task — SSH Server
+#### 7.2. Scheduled Task — SSH Server
 
 ```
 schtasks.exe /create /sc minute /mo 1 /tn "SSH Server" /rl highest
@@ -523,7 +523,7 @@ schtasks.exe /create /sc minute /mo 1 /tn "SSH Server" /rl highest
 
 Tạo task tự động khởi chạy SSH server trên máy victim để nhận lệnh được chuyển tiếp qua tunnel.
 
-#### 6.3. Xác nhận task đã đăng ký
+#### 7.3. Xác nhận task đã đăng ký
 
 ```spl
 index=main host="IT-WS01" earliest="07/17/2025:20:29:10"
@@ -546,18 +546,18 @@ index=main source=XmlWinEventLog:Microsoft-Windows-TaskScheduler/Operational
 
 Event 100 (Task Started) ghi nhận cả hai task được khởi chạy lần đầu vào **2025-07-17 20:30:01**.
 
-#### 6.4. Thiết lập ACL cho SSH key
+#### 7.4. Thiết lập ACL cho SSH key
 
 | Thời gian | Lệnh | Mô tả |
 |---|---|---|
 | 20:29:13 | `icacls "C:\ProgramData\sshd\config\keys\id_rsa" /grant:r "danderson:(R)"` | Thay thế mọi quyền đã cấp tường minh bằng quyền **Read** cho user `danderson` |
 | 20:29:13 | `icacls "C:\ProgramData\sshd\config\keys\id_rsa" /inheritance:r` | Vô hiệu hóa kế thừa quyền và xóa toàn bộ quyền kế thừa từ thư mục cha |
 
-### 7. Post-Exploitation trên IT-WS01
+### 8. Tiếp tục hoạt động post-Exploitation trên IT-WS01
 
 Sau khi thiết lập SSH tunnel, attacker tiếp tục thực thi các lệnh qua `netsupport.exe`:
 
-#### 7.1. Kiểm tra SSH Server và tạo tài khoản backdoor
+#### 8.1. Kiểm tra SSH Server và tạo tài khoản backdoor
 
 | Thời gian | Lệnh | Mô tả |
 |---|---|---|
@@ -568,7 +568,7 @@ Sau khi thiết lập SSH tunnel, attacker tiếp tục thực thi các lệnh q
 
 **`WDAGUtilityAccount`** là tài khoản hệ thống (built-in) được Windows Defender Application Guard (WDAG) hoặc Windows Sandbox sử dụng. Tài khoản này thường ở trạng thái disabled và không thể dùng để đăng nhập. Attacker tạo tài khoản có tên gần giống (**thêm số 2** vào cuối) nhằm đánh lừa user khi quan sát qua GUI.
 
-#### 7.3. Tạo user và cấp quyền
+#### 8.3. Tạo user và cấp quyền
 
 | Thời gian | Lệnh | Mô tả |
 |---|---|---|
@@ -599,7 +599,7 @@ index=main host="IT-WS01" earliest="07/17/2025:21:11:00"
 
 Event 4732 xác nhận user `WDAGUtilityAccount2` đã được thêm vào cả 2 nhóm `BUILTIN\Administrators` và `BUILTIN\Remote Desktop Users`.
 
-#### 7.4. Vô hiệu hóa Windows Defender
+#### 8.4. Vô hiệu hóa Windows Defender
 
 | Thời gian | Lệnh | Mô tả |
 |---|---|---|
@@ -649,7 +649,7 @@ index=main host="IT-WS01" mpms.exe EventCode=1
 
 Payload `mpms.exe` đã được tải về nhưng **chưa ghi nhận được thực thi** trong log.
 
-#### 7.5. Credential Dumping — LSASS
+#### 8.5. Credential Dumping — LSASS
 
 | Thời gian | Lệnh | Mô tả |
 |---|---|---|
@@ -669,7 +669,7 @@ index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
 
 Vào **2025-07-17 21:36:24**, Sysmon event id 10 ghi nhận process `netsupport.exe` mở handle tới process `lsass.exe` với access mask là **0x1010** (`PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ`). Đây là dấu hiệu cho thấy hành vi dump credentials từ bộ nhớ LSASS.
 
-#### 7.6. WMI Remote Execution — Thay đổi firewall trên DC01
+#### 8.6. WMI Remote Execution — Thay đổi firewall trên DC01
 
 Khoảng hơn 30 phút sau khi ghi nhận hành vi truy cập bộ nhớ process LSASS, attacker thực thi thêm các lệnh sau:
 
@@ -704,7 +704,7 @@ Trong log được cung cấp, không ghi nhận event nào liên quan trên DC0
 
 Ngoài ra, quan sát thấy attacker đã sử dụng plaintext password của user aclark trong các câu lệnh sử dụng wmic để chạy lệnh từ xa trên DC01, trong khi đó sự kiện truy cập lsass diễn ra trước các sự kiện này khoảng 30 phút, có thể attacker đã thành công dump password hash của user và crack lấy plaintext password. 
 
-### 8. Lateral Movement sang DC01
+### 9. Lateral Movement sang DC01
 
 ```spl
 index=main source=XmlWinEventLog:Security host=DC01
@@ -732,7 +732,7 @@ Bắt đầu từ **2025-07-18 01:02:21**, ghi nhận liên tiếp các event 46
 
 Kết hợp với hành vi truy cập bộ nhớ LSASS vào **21:36:24** (vài tiếng trước lateral movement), attacker nhiều khả năng đã dump được NTLM hash của user `aclark` từ LSASS và sử dụng kĩ thuật **Pass-the-Hash** để xác thực mà không cần biết plaintext password.
 
-#### 8.1. WMI Execution trên DC01 (wmiexec/Impacket)
+#### 9.1. WMI Execution trên DC01 (wmiexec/Impacket)
 
 ```spl
 index=main source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
@@ -748,43 +748,66 @@ Các lệnh độc hại trên DC01 đều được process `WmiPrvSE.exe` khở
 
 IP nguồn quan sát được là `10.10.5.142` (IP attacker) thay vì IP C2 `10.10.5.100`, cho thấy attacker có thể đã thành công thay đổi firewall rule trên DC01 (qua các lệnh `wmic` trước đó) để cho phép gọi hàm WMI từ xa trên DC từ IP của chính hắn.
 
-#### 8.2. NTDS Dump và Exfiltration staging
+#### 9.2. NTDS Dump và Exfiltration staging
 Các lệnh quan sát được:
 | Thời gian | Lệnh | Mô tả |
 |---|---|---|
 | 2025-07-18 01:06:28 | `powershell.exe "ntdsutil.exe 'ac i ntds' 'ifm' 'create full c:\ProgramData\ntdsutil' q q"` | Lạm dụng công cụ hợp lệ `ntdsutil` để dump tệp **NTDS.dit** (cơ sở dữ liệu AD chứa hash password toàn bộ domain), hive **SYSTEM** (chứa boot key để decrypt NTDS.dit) và hive **SECURITY** (chứa LSA Secrets, machine account secrets, DPAPI secrets) |
 | 2025-07-18 01:08:15 | `powershell -c Compress-Archive -Path C:\ProgramData\ntdsutil -DestinationPath C:\Data_backup_20250716.zip` | Nén dữ liệu đã dump thành `C:\Data_backup_20250716.zip` — chuẩn bị cho exfiltration |
 
-## MITRE ATT&CK Mapping
+# Incident Timeline – NetSupport RAT - TA569 Lab
 
-| Tactic | Technique ID | Technique | Ghi chú |
-|---|---|---|---|
-| **Initial Access** | T1566.001 | Spearphishing Attachment | User `danderson` tải `Invoices.zip` đính kèm trong mail |
-| **Execution** | T1059.007 | JavaScript | `Invoice_2326.js` thực thi qua `wscript.exe` |
-| **Execution** | T1059.001 | PowerShell | Tải và thực thi `update.ps1` trong memory |
-| **Execution** | T1059.003 | Windows Command Shell | Thực thi `install.bat`, các lệnh discovery |
-| **Execution** | T1047 | WMI | Sử dụng `wmic`/`wmiexec` thực thi lệnh từ xa trên DC01 |
-| **Persistence** | T1547.001 | Registry Run Keys | Tạo Run Key `NetSupport` trong HKCU |
-| **Persistence** | T1053.005 | Scheduled Task | Task `SSH Key Exchange` và `SSH Server` |
-| **Persistence** | T1136.001 | Create Local Account | Tạo user `WDAGUtilityAccount2` |
-| **Privilege Escalation** | T1098.007 | Additional Local Groups | Thêm `WDAGUtilityAccount2` vào Administrators và RDP Users |
-| **Defense Evasion** | T1036.005 | Match Legitimate Name | `Invoice_2326.js`, `update.ps1`, `netsupport.exe` |
-| **Defense Evasion** | T1036.010 | Masquerade Account Name | Tên `WDAGUtilityAccount2` giả mạo tài khoản hệ thống |
-| **Defense Evasion** | T1036.004 | Masquerade Task/Service | Task `SSH Key Exchange` giả mạo task quản trị |
-| **Defense Evasion** | T1564.003 | Hidden Window | `-WindowStyle Hidden` |
-| **Defense Evasion** | T1685 | Disable or Modify Tools | Thay đổi exclusion path/process của Defender |
-| **Defense Evasion** | T1686 | Disable System Firewall | Dùng `netsh` chỉnh rule firewall trên DC01 |
-| **Discovery** | T1087.001/.002 | Account Discovery | `net user`, `net user /domain`, `net user ServiceAdmin /domain` |
-| **Discovery** | T1033 | System Owner/User Discovery | `whoami /all` |
-| **Discovery** | T1069.001/.002 | Permission Groups Discovery | `net group "Domain Admins" /domain`, `net localgroup administrators` |
-| **Discovery** | T1135 | Network Share Discovery | `net view \\CORP.local\SYSVOL` |
-| **Discovery** | T1057 | Process Discovery | `tasklist`, `Get-Process -Name lsass` |
-| **Discovery** | T1049 | System Network Connections | `netstat -ano \| findstr 2222` |
-| **Discovery** | T1518.001 | Security Software Discovery | `Get-MpThreat`, `Get-MpPreference` |
-| **Discovery** | T1555.004 | Windows Credential Manager | `cmdkey /list` |
-| **Credential Access** | T1003.001 | LSASS Memory | `netsupport.exe` truy cập bộ nhớ LSASS |
-| **Credential Access** | T1003.003 | NTDS | Dump `NTDS.dit` bằng `ntdsutil` trên DC01 |
-| **Lateral Movement** | T1550.002 | Pass the Hash | Sử dụng NTLM hash của `aclark` để lateral movement |
-| **Collection** | T1560.001 | Archive via Utility | Nén dữ liệu dump thành `Data_backup_20250716.zip` |
-| **Command and Control** | T1105 | Ingress Tool Transfer | Tải `update.ps1`, `install.bat`, `mpms.exe` |
-| **Command and Control** | T1572 | Protocol Tunneling | Reverse SSH tunnel qua `10.10.5.142` |
+| Timestamp | Tactic | Technique ID | Technique / Sub-technique | Bằng chứng liên quan |
+|---|---|---|---|---|
+| 2025-07-17 19:38:16 | Initial Access | T1566.001 | Spearphishing Attachment | User danderson trên host IT-WS01 dùng msedge.exe tải Invoices.zip từ http://10.10.5.142/Invoices.zip về thư mục C:\Users\danderson\Downloads\. Sau đó, giải nén ra tệp Invoice_2326.js (Sysmon Event 15, 11). |
+| 2025-07-17 19:39:23 – 19:40:39 | Execution | T1059.007 / T1059.001 / T1564.003 | JavaScript / PowerShell / Hide Artifacts: Hidden Window | Process wscript.exe thực thi Invoice_2326.js → spawn powershell.exe chạy lệnh với cờ -NoProfile -WindowStyle Hidden, tải và thực thi payload update.ps1 từ http://10.10.5.142/update.ps1 trong memory bằng IEX (Sysmon Event 1, 3). |
+| 2025-07-17 19:39:29 – 19:40:40 | Command and Control | T1105 | Ingress Tool Transfer | powershell.exe kết nối tới 10.10.5.142:80 tải binary netsupport.exe vào thư mục ngẫu nhiên trong AppData\Roaming. Payload giả mạo phần mềm quản trị hợp lệ NetSupport Manager (Sysmon Event 3, 11, 29). |
+| 2025-07-17 19:40:41 | Persistence | T1547.001 | Registry Run Keys / Startup Folder | powershell.exe (PID 4876) thêm value NetSupport vào HKCU Run Key trỏ tới C:\Users\danderson\AppData\Roaming\hkcJM8qC\netsupport.exe để duy trì persistence mỗi khi user danderson đăng nhập vào máy (Sysmon Event 13). |
+| 2025-07-17 19:40:41 – 2025-07-18 08:43:56 | Command and Control | T1219 | Remote Access Software (NetSupport RAT) | RAT netsupport.exe (PID 12792) khởi chạy và duy trì kết nối liên tục tới C2 10.10.5.100:9001 trong suốt ~13 tiếng để nhận lệnh. Ngoài ra ghi nhận thêm 1 kết nối tới DC01 (10.10.11.216) qua port 135 (RPC) và port 49667 với lí do chưa rõ (Sysmon Event 1, 3, 5). |
+| 2025-07-17 19:44:03 – 20:08:17 | Discovery | T1087.001/.002 / T1033 / T1069.002 / T1555.004 / T1135 / T1057 | Account Discovery: Domain Account/Local Account / System Owner Discovery / Permission Groups Discovery: Domain Groups / Credentials from Password Stores: Windows Credential Manager /Network Share Discovery / Process Discovery | Thực thi hàng loạt lệnh recon nhận được từ C2: net user /domain, net user, whoami /all, net group "Domain Admins" /domain, net user ServiceAdmin /domain, cmdkey /add:DC01, cmdkey /list, net view \\CORP.local\SYSVOL, tasklist \| find ssh, ping -n 1 DC01, tasklist (Sysmon Event 1). |
+| 2025-07-17 20:26:41 – 20:30:01 | Execution / Command and Control / Persistence / Stealth | T1105 / T1059.003 / T1053.005 / T1572 / T1036.004 | Ingress Tool Transfer / Command and Scripting Interpreter: Windows Command Shell / Scheduled Task / Protocol Tunneling / Masquerading: Masquerade Task or Service | RAT tải payload install.bat từ 10.10.5.142 bằng curl, batch script thực thi và drop SSH client/server vào C:\ProgramData\sshd\. Sau đó, script này tạo 2 scheduled task: "SSH Key Exchange" (reverse SSH tunnel) và "SSH Server" (sshd trên port 2222), cả hai task chạy mỗi 1 phút với /rl highest và đều được đặt tên nhằm giả mạo 1 tác vụ quản trị SSH hợp lệ (Event 106, 100, Sysmon Event 1, 11). |
+| 2025-07-17 21:09:38 – 21:12:12 | Persistence / Privilege Escalation | T1136.001 / T1036.010 / T1098.007 | Create Local Account / Masquerading: Masquerade Account Name / Additional Local Groups | Tạo tài khoản backdoor WDAGUtilityAccount2 (đặt tên giả mạo tài khoản hệ thống WDAG) với password = Decryptme1488@. sau đó, thêm acc này vào nhóm Administrators và Remote Desktop Users để cho phép RDP và quyền quản trị cục bộ (Event 4720, 4732, Sysmon Event 1). |
+| 2025-07-17 21:12:12 – 21:26:30 | Discovery / Command and Control / Defense Evasion | T1518.001 / T1105 / T1685 | Software Discovery: Security Software Discovery / Ingress Tool Transfer / Disable or Modify Tools (Windows Defender) | Attacker kiểm tra config Window Defender với 2 lệnh Get-MpThreat, Get-MpPreference. Sau đó, tải payload mpms.exe từ 10.10.5.142 nhưng chưa ghi nhận thực thi, thêm exclusion path C:\Users\Public và exclusion process mpms.exe vào Windows Defender (thành công). Tiếp theo, attacker cố gắng tắt tính năng Behavior Monitoring và Realtime Monitoring của Defender bằng Add-MpPreference thay vì Set-MpPreferenc -> thất bại do sai cmdlet. (Defender Event 5007, Sysmon Event 1). |
+| 2025-07-17 21:29:00 – 21:36:24 | Discovery / Credential Access | T1057 / T1003.001 | Process Discovery / OS Credential Dumping: LSASS Memory | Vào 2025-07-17 21:29:00, truy vấn thông tin process LSASS bằng lệnh powershell "Get-Process -Name lsass". Sau đó, vào 2025-07-17 21:36:24, RAT netsupport.exe mở handle tới process lsass.exe với access mask = 0x1010 (PROCESS_QUERY_LIMITED_INFORMATION \| PROCESS_VM_READ) — dấu hiệu hành vi dump credentials từ bộ nhớ LSASS (Sysmon Event 10, 1). |
+| 2025-07-17 22:13:03 – 22:17:56 | Defense Impairment / Execution | T1686 / T1047 | Impair Defenses: Disable or Modify System Firewall / WMI | Sử dụng wmic để thực thi lệnh từ xa trên DC01 (10.10.11.216), xác thực qua credentials aclark:vm96Dva!. Tạo firewall rule "DCOM" (allow TCP/135 inbound) và "WMI" (allow TCP any port inbound) bằng công cụ netsh advfirewall — mở đường cho lateral movement về sau (Sysmon Event 1). |
+| 2025-07-18 01:02:21 | Lateral Movement | T1550.002 / T1047 | Pass the Hash / WMI (wmiexec/Impacket) | Từ IP 10.10.5.142 (IP attacker), attacker sử dụng NTLM hash của user aclark (nhiều khả năng dump được từ LSASS) để đăng nhập vào DC01 và xác thực thông qu giao thức NTLM. Các lệnh được thực thi qua WmiPrvSE.exe với output pipe vào tệp tạm C:\Windows\__<epoch> — dấu hiệu đặc trưng của công cụ wmiexec (Impacket) (Event 4624, 4776, Sysmon Event 1). |
+| 2025-07-18 01:06:28 | Credential Access | T1003.003 | OS Credential Dumping: NTDS | Lạm dụng công cụ hợp lệ ntdsutil.exe để dump NTDS.dit ( ệp cơ sở dữ liệu Active Directory chứa hash password toàn bộ domain), hive SYSTEM (chứa boot key) và hive SECURITY (chứa LSA Secrets) vào thư mục C:\ProgramData\ntdsutil trên DC01 (Sysmon Event 1). |
+| 2025-07-18 01:08:15 | Collection | T1560.001 | Archive Collected Data: Archive via Utility | Nén dữ liệu đã dump thành C:\Data_backup_20250716.zip bằng PowerShell Compress-Archive — chuẩn bị cho exfiltration. Đặt tên tệp giả mạo bản sao lưu hệ thống bình thường (Sysmon Event 1). |
+
+# Indicators of Compromise (IOC)
+
+| Loại | Giá trị |
+|---|---|
+| IP | `10.10.5.142` |
+| IP | `10.10.5.100` |
+| C2 IP:Port | `10.10.5.100:9001` |
+| Reverse SSH endpoint | `10.10.5.142:22` |
+| URL | `http://10.10.5.142/Invoices.zip` |
+| URL | `http://10.10.5.142/update.ps1` |
+| URL | `http://10.10.5.142/install.bat` |
+| URL | `http://10.10.5.142/mpms.exe` |
+| SHA256 – netsupport.exe | `81EDC7075CA7BE5512FB7952874C9D174E64EDD4409FFA91991C058F5B2B176C` |
+| SHA1 – netsupport.exe | `AE5A3A98C198E998A1A22D300C7E027EF7647657` |
+| MD5 – netsupport.exe | `CBC0745956FEFB5907AEC80BBADD5EC8` |
+| IMPHASH – netsupport.exe | `F0EA7B7844BBC5BFA9BB32EFDCEA957C` |
+| File | `Invoices.zip` |
+| File | `C:\Users\danderson\Downloads\Invoices\Invoice_2326.js` |
+| File | `C:\Users\danderson\AppData\Roaming\P8jTg6Hj\netsupport.exe` |
+| File | `C:\Users\danderson\AppData\Roaming\hkcJM8qC\netsupport.exe` |
+| File | `C:\Users\danderson\install.bat` |
+| File | `C:\ProgramData\sshd\ssh.exe` |
+| File | `C:\ProgramData\sshd\sshd.exe` |
+| File | `C:\ProgramData\sshd\config\keys\id_rsa` |
+| File | `C:\ProgramData\sshd\config\sshd_config` |
+| File | `C:\Users\danderson\Documents\mpms.exe` |
+| File | `C:\ProgramData\ntdsutil` |
+| File | `C:\Data_backup_20250716.zip` |
+| Registry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\NetSupport` |
+| Scheduled Task | `SSH Key Exchange` |
+| Scheduled Task | `SSH Server` |
+| Local account  | `IT-WS01\WDAGUtilityAccount2` |
+| Account | `aclark` |
+| Windows Defender – ExclusionPath | `C:\Users\Public` |
+| Windows Defender – ExclusionProcess | `C:\Users\danderson\Documents\mpms.exe` |
+| Firewall rule  | `DCOM` |
+| Firewall rule  | `WMI` |
