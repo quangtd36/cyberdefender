@@ -749,11 +749,11 @@ Không ghi nhận process đáng ngờ nào trên ITWS từ khoảng thời gian
 | 2025-03-21 15:15:39 | WS1 | Pancake.jpg.exe khởi chạy |
 | 2025-03-21 15:15:39 | WS1 | Pancake.jpg.exe tạo và kết nối tới pipe MSSE-8859-server, đồng thời duy trì beacon tới C2 54.93.105.22:80 |
 | 2025-03-21 15:17:41-15:22:46 | WS1 | Pancake.jpg.exe thực thi các lệnh Discovery bao gồm: whoami, ipconfig /all, systeminfo, net group "domain admins" /domain và net localgroup administrators |
-| 2025-03-21 15:23:21 | WS1 | Một instance Pancake.jpg.exe (PID = 10292) nữa được khởi chạy với Integrity level = High |
-| 2025-03-21 15:23:21–15:23:22 | WS1 | Pancake.jpg.exe (PID = 10292) tạo và kết nối pipe MSSE-5028-server. Instance này cũng duy trì kết nối đến C2 54.93.105.22:80 |
-| 2025-03-21 15:26:22–15:43:59 | WS1 | Pancake.jpg.exe (PID = 10292) tải về và sử dụng netscan scan IP nội bộ trong khoảng 10.10.11.1-10.10.255.255 |
-| 2025-03-21 15:59:09-15:59:10 | WS1 | Pancake.jpg.exe (PID = 10292) tải về PsExec64 | 
-| 2025-03-21 16:04:20 | WS1 | 	Pancake.jpg.exe (PID = 10292) spawn ra rundll32.exe (PID 2676) | 
+| 2025-03-21 15:23:21 | WS1 | Một instance Pancake.jpg.exe (PID = 6320) nữa được khởi chạy với Integrity level = High |
+| 2025-03-21 15:23:21–15:23:22 | WS1 | Pancake.jpg.exe (PID = 6320) tạo và kết nối pipe MSSE-5028-server. Instance này cũng duy trì kết nối đến C2 54.93.105.22:80 |
+| 2025-03-21 15:26:22–15:43:59 | WS1 | Pancake.jpg.exe (PID = 6320) tải về và sử dụng netscan scan IP nội bộ trong khoảng 10.10.11.1-10.10.255.255 |
+| 2025-03-21 15:59:09-15:59:10 | WS1 | Pancake.jpg.exe (PID = 6320) tải về PsExec64 | 
+| 2025-03-21 16:04:20 | WS1 | 	Pancake.jpg.exe (PID = 6320) spawn ra rundll32.exe (PID 2676) | 
 | 2025-03-21 16:04:21 | WS1 | rundll32.exe (PID 2676) tạo pipe postex_2198 để giao tiếp với Pancake.jpg.exe |
 | 2025-03-21 16:04:21 | WS1 | rundll32.exe (PID 2676) truy cập lsass.exe | 
 | 2025-03-21 16:06:21 | WS1 | chạy PsExec sử dụng thông tin đăng nhập của user swhite, thực thi lệnh whoami trên DC01 (10.10.11.170) |
