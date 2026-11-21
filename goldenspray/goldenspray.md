@@ -986,3 +986,31 @@ index=goldenspray host="ST-FS01" earliest="09/09/2024:17:50:00"
 ![](images/image66.png)
 
 Vào **2024-09-09 17:53:10.708**, ghi nhận tệp `C:\Users\Public\Documents\Archive_8673812.zip` được tạo ra -> attacker đã nén toàn bộ dữ liệu thu thập vào một tệp duy nhất. Tuy nhiên, **chưa ghi nhận** hoạt động exfiltration sau thời điểm này.
+
+# Incident Timeline – GoldenSpray
+
+| Timestamp | Tactic | Technique ID | Technique / Sub-technique | Bằng chứng liên quan |
+|---|---|---|---|---|
+| 2024-09-09 16:29:05 | Reconnaissance | T1595 | Active Scanning | **ST-WIN02:** Attacker thăm dò kết nối bằng cách thử xác thực bằng account `FAKE\user` (Security 4625). |
+| 2024-09-09 16:55:16–16:56:05 | Credential Access | T1110.001 | Brute Force: Password Guessing | **ST-WIN02:** Attacker thử xác thực qua giao thức SMB 15 username khác nhau, cả local và domain account  (Security 4625, SMBServer 551). |
+| 2024-09-09 16:56:05 | Initial Access | T1078.003 | Valid Accounts: Local Accounts | **ST-WIN02:** Đăng nhập SMB thành công bằng tài khoản `ST-WIN02\michaelwilliams`, rồi kết thúc phiên ngay sau đó để chuyển sang RDP (4624/4634). |
+| 2024-09-09 17:00:21 | Initial Access | T1078.002 / T1021.001 | Valid Accounts: Domain Accounts / Remote Services: Remote Desktop Protocol | **ST-WIN02:** RDP vào ST-WIN02 thành công bằng tài khoản `SECURETECH\mwilliams` (4624/4672). |
+| 2024-09-09 17:10:24 | Execution | T1059.001 | Command and Scripting Interpreter: PowerShell | **ST-WIN02:** Mở 1 phiên PowerShell tương tác (PID 8184) tại thư mục `C:\Windows\Temp` (Sysmon 1). |
+| 2024-09-09 17:12:14–17:12:16 | Command and Control | T1105 | Ingress Tool Transfer | **ST-WIN02:** Attacker drop payload `OfficeUpdater.exe` từ C2 server `77.91.78.115:80` (Sysmon 3/11). |
+| 2024-09-09 17:17:09 | Persistence | T1547.001 | Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder | **ST-WIN02:** Tạo Run Key `OfficeUpdater` trỏ tới payload `OfficeUpdater.exe` drop trong `C:\Windows\Temp` (Sysmon 1/13). |
+| 2024-09-09 17:21:52–17:25:00 | Command and Control | T1105 | Ingress Tool Transfer | **ST-WIN02:** Tải `C:\Users\Public\Backup_Tools.zip` từ C2 server, sau đó giải nén ra 3 tools là: `mimikatz.exe`, `PsExec.exe`, và `PowerView.ps1` vào thư mục `Backup_Tools` (Sysmon 3/11). |
+| 2024-09-09 17:22:57–17:25:00 | Defense Evasion | T1070.006 | Indicator Removal: Timestomp | **ST-WIN02:** Thay đổi Creation Time của hai executable (`mimikatz.exe` và `PsExec.exe`) vừa giải nén (Sysmon 2). |
+| 2024-09-09 17:23:26–17:23:47 | Execution | T1059.001 | Command and Scripting Interpreter: PowerShell | **ST-WIN02:** Attacker nạp script `PowerView.ps1` nhưng bị Execution Policy chặn thực thi (4100). |
+| 2024-09-09 17:25:55–17:25:57 | Defense Impairment / Discovery | T1112 | Modify Registry | **ST-WIN02:** Attacker thay đổi giá trị registry value Execution Policy thành `Unrestricted` nhằm cho phép thực thi script `PowerView.ps1` để recon AD (Sysmon 13, 4104). |
+| 2024-09-09 17:27:34–17:27:59 | Credential Access | T1003.001 | OS Credential Dumping: LSASS Memory | **ST-WIN02:** Khởi chạy 1 phiên Mimikatz truy cập process `lsass.exe` với `GrantedAccess=0x1010` để dump creds |
+| 2024-09-09 17:34:15–17:34:17 | Lateral Movement | T1078.002 / T1021.001 | Valid Accounts: Domain Accounts / Remote Desktop Protocol | **ST-DC01:** Thành công RDP trực tiếp vào ST-DC01 bằng tài khoản `SECURETECH\jsmith` từ máy tấn công `77.91.78.115` (4624). |
+| 2024-09-09 17:36:36–17:37:00 | Command and Control | T1105 | Ingress Tool Transfer | **ST-DC01:** Tải `FileCleaner.exe` về thư mục `C:\Windows\Temp` trên ST-DC01 (Sysmon 3/11/29). |
+| 2024-09-09 17:38:44 | Persistence | T1053.005 | Scheduled Task/Job: Scheduled Task | **ST-DC01:** Tạo task `FilesCheck` chạy hằng giờ dưới danh tính `SYSTEM`, task chạy 1 lệnh PowerShell để thực thi payload `FileCleaner.exe` nhưng thất bại do sai syntax (Sysmon 1). |
+| 2024-09-09 17:39:11–17:40:02 | Credential Access | T1003.006 | OS Credential Dumping: DCSync | **ST-WIN02:** Attacker khởi chạy 1 phiên mimikatz mới và nhập lệnh lsadump::dcsync nhằm đánh cắp thông tin AD (Sysmon 3, 4768/4624). |
+| 2024-09-09 17:41:33–17:42:21 | Command and Control | T1105 | Ingress Tool Transfer | **ST-DC01:** Tải payload `C:\Users\Public\BackupRunner.exe` về DC (Mimikatz đổi tên) từ C2 server (Sysmon 3/11). |
+| 2024-09-09 17:42:27 và sau đó | Credential Access | T1003.006 / T1558.001 | OS Credential Dumping: DCSync / Steal or Forge Kerberos Tickets: Golden Ticket | **ST-DC01:** Attacker khởi chạy `BackupRunner.exe` (mimikatz) thực hiện dcsync đánh cắp Kerberos Long-Term Key của tài khoản krbtgt, tạo golden ticket rồi kiểm tra với klist  |
+| 2024-09-09 17:50:13 | Lateral Movement | T1078.002 / T1021.001 | Valid Accounts: Domain Accounts / Remote Services: Remote Desktop Protocol | **ST-FS01:** RDP thành công vào File Server bằng tài khoản `SECURETECH\jsmith` (4624). |
+| 2024-09-09 17:50:54–17:53:10 | Collection | T1560 | Archive Collected Data | **ST-FS01:** Khởi chạy 1 phiên PowerShell tại thư mục `C:\Shares`, thu thập và nén dữ liệu lại thành tệp `Archive_8673812.zip` (4103, Sysmon 11) |
+| 2024-09-09 18:31:47 | Persistence | T1547.001 | Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder | **ST-WIN02:** Run Key `OfficeUpdater` kích hoạt payload khi `mwilliams` đăng nhập lại (Sysmon 1). |
+| 2024-09-09 18:38:02 | Persistence | T1053.005 | Scheduled Task/Job: Scheduled Task | **ST-DC01:** Schedule Task `FilesCheck` chạy lệnh PowerShell dưới danh tính `SYSTEM`, tuy nhiên, payload `FileCleaner.exe` chưa được thực thi thành công (Sysmon 1). |
+
