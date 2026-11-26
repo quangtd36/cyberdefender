@@ -135,7 +135,7 @@ Vào **2023-10-16 07:48:10.484**, event 7045 ghi nhận một service với tên
 
 ![](images/image8.png)
 
-Sau khi deobfuscate và phân tích luồng thực thi, ta thấy script thiết lập một **reverse TCP shell** kết nối tới C2 của attacker. Việc chủ động kết nối outbound nhằm **bypass firewall**.
+Sau khi deobfuscate và phân tích luồng thực thi, xác định script này khởi tạo một process PowerShell 32-bit ẩn cửa sổ thực thi, sau đó cấp phát vùng nhớ trong process này để nạp và thực thi shellcode được giải mã từ Base64. Shellcode đóng vai trò là một **Reverse TCP shell**, chủ động thiết lập kết nối đến C2 server của attacker nhằm nhận và thực thi lệnh. Việc sử dụng kết nối outbound có thể giúp attacker **vượt qua các quy tắc firewall hạn chế kết nối inbound**, nếu lưu lượng outbound đến C2 không bị chặn.
 
 #### 3.5. Process tree
 
@@ -157,18 +157,18 @@ Vào **2023-10-16 07:48:10.704**, service độc hại khởi chạy thành côn
 [616] C:\Windows\System32\services.exe  
   2023-10-16 07:48:10  SYSTEM  0x3e7
   └── [5896] cmd.exe /b /c start /b /min powershell.exe -nop -w hidden -noni -c "..." 
-        └── [1756] C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe 
-              2023-10-16 07:48:26  ├── [644] cmd.exe
-              2023-10-16 07:48:28  │   ├── [2288] hostname
-              2023-10-16 07:48:31  │   ├── [3508] whoami
-              2023-10-16 07:48:38  │   ├── [2004] reg add "hklm\...\terminal server" /f /v fDenyTSConnections /t REG_DWORD /d 0
-              2023-10-16 07:48:44  │   ├── [980] netsh firewall set service remoteadmin enable
-              2023-10-16 07:48:53  │   └── [5868] netsh firewall set service remotedesktop enable
-              2023-10-16 07:54:52  ├── [7956] cmd.exe /c "echo. | powershell get-host"
-              2023-10-16 07:54:52  │   ├── [7232] cmd.exe /S /D /c" echo. "
-              2023-10-16 07:54:52  │   └── [8352] powershell get-host
-              2023-10-16 07:54:53  └── [8784] cmd.exe /c whoami /groups
-              2023-10-16 07:54:53      └── [3156] whoami /groups
+[1756] C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe 
+  2023-10-16 07:48:26  ├── [644] cmd.exe
+  2023-10-16 07:48:28  │   ├── [2288] hostname
+  2023-10-16 07:48:31  │   ├── [3508] whoami
+  2023-10-16 07:48:38  │   ├── [2004] reg add "hklm\...\terminal server" /f /v fDenyTSConnections /t REG_DWORD /d 0
+  2023-10-16 07:48:44  │   ├── [980] netsh firewall set service remoteadmin enable
+  2023-10-16 07:48:53  │   └── [5868] netsh firewall set service remotedesktop enable
+  2023-10-16 07:54:52  ├── [7956] cmd.exe /c "echo. | powershell get-host"
+  2023-10-16 07:54:52  │   ├── [7232] cmd.exe /S /D /c" echo. "
+  2023-10-16 07:54:52  │   └── [8352] powershell get-host
+  2023-10-16 07:54:53  └── [8784] cmd.exe /c whoami /groups
+  2023-10-16 07:54:53      └── [3156] whoami /groups
 ```
 
 Từ **07:48:26** đến **07:48:53**, process PowerShell C2 agent (PID 1756) khởi chạy `cmd.exe` (PID 644) để thực thi các lệnh sau:

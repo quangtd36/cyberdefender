@@ -130,7 +130,7 @@ Ghi nhận các sự kiện đăng nhập thành công sau từ attacker (**77.9
 | Thời gian | Host | Username | Mô tả |
 |---|---|---|---|
 | **2024-09-09 16:56:05.672** | ST-WIN02 | `michaelwilliams` | Đăng nhập thành công qua SMB sử dụng **local account** (TargetDomainName = `ST-WIN02`) |
-| **2024-09-09 17:00:21.705** | ST-WIN02 | `mwilliams` | Sau 4 phút, RDP vào ST-WIN02 sử dụng **domain account** có đặc quyền cao do đó Windows tạo ra 2 access token (restricted & elevated) |
+| **2024-09-09 17:00:21.705** | ST-WIN02 | `mwilliams` | Sau 4 phút, RDP vào ST-WIN02 sử dụng **domain account** có đặc quyền cao do đó Windows tạo ra 2 access token (filtered & elevated) |
 | **2024-09-09 17:34:15.827** | ST-DC01 | `jsmith` | RDP thành công vào **Domain Controller** sử dụng domain account có đặc quyền cao |
 | **2024-09-09 17:50:13.581** | ST-FS01 | `jsmith` | Tiếp tục RDP vào **File Server** |
 
@@ -391,7 +391,7 @@ index=goldenspray host="ST-WIN02" earliest="09/09/2024:17:00:00"
 
 ![](images/image21.png)
 
-Vào **2024-09-09 18:31:47.478**, Run Key kích hoạt và khởi chạy `C:\Windows\Temp\OfficeUpdater.exe` sau khi `SECURETECH\mwilliams` đăng nhập vào máy. Payload chạy với **restricted token** (Integrity Level = Medium).
+Vào **2024-09-09 18:31:47.478**, Run Key kích hoạt và khởi chạy `C:\Windows\Temp\OfficeUpdater.exe` sau khi `SECURETECH\mwilliams` đăng nhập vào máy. Payload chạy với **filtered token** (Integrity Level = Medium).
 
 ### 3.6 Phiên PowerShell #3 (PID 3956) — Tool Staging
 
