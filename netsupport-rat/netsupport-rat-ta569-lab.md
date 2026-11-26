@@ -19,8 +19,6 @@ A leading tech firm, TechSynergy, has detected an anomaly after an employee enga
 
 Lab cung cấp Windows Event Logs và Suricata logs trên Splunk.
 
----
-
 ## Điều tra
 
 ### 1. Initial Access — Phishing Attachment
