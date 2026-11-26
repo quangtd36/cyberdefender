@@ -129,13 +129,13 @@ index="kerberoasted" earliest="10/16/2023:07:48:07" latest="10/16/2023:07:50:25"
 
 ![](images/image7.png)
 
-Vào **2023-10-16 07:48:10.484**, event 7045 ghi nhận một service với tên `iOOEDsXjWeGRAyGl` được cài đặt trên hệ thống và chạy dưới danh tính **SYSTEM**. Trường `ImagePath` cho thấy service gọi `cmd.exe` để thực thi một câu lệnh PowerShell bị obfuscate qua nhiều tầng.
+Vào **2023-10-16 07:48:10.484**, event 7045 ghi nhận một service với tên `iOOEDsXjWeGRAyGl` được cài đặt trên hệ thống và thiết lập chạy dưới danh tính **SYSTEM**. Trường `ImagePath` cho thấy service gọi `cmd.exe` để thực thi một câu lệnh PowerShell bị obfuscate qua nhiều tầng.
 
 #### 3.4. Phân tích payload
 
 ![](images/image8.png)
 
-Sau khi deobfuscate và phân tích luồng thực thi, ta thấy script hoạt động như một **reverse TCP shell** kết nối tới C2 của attacker dưới danh tính **SYSTEM**. Việc chủ động kết nối ra ngoài giúp **bypass firewall** inbound.
+Sau khi deobfuscate và phân tích luồng thực thi, ta thấy script thiết lập một **reverse TCP shell** kết nối tới C2 của attacker. Việc chủ động kết nối outbound nhằm **bypass firewall**.
 
 #### 3.5. Process tree
 
@@ -251,7 +251,7 @@ index="kerberoasted" earliest="10/16/2023:07:50:00" latest="10/16/2023:08:19:00"
 
 ![](images/image14.png)
 
-Vào **2023-10-16 07:57:12.322**, event 7045 ghi nhận service với tên `YeDIRrUiXDmvRLyq` được cài đặt trên hệ thống và chạy dưới danh tính **SYSTEM**. Tương tự service trước, trường `ImagePath` chứa lệnh PowerShell bị obfuscate qua nhiều tầng.
+Vào **2023-10-16 07:57:12.322**, event 7045 ghi nhận service với tên `YeDIRrUiXDmvRLyq` được cài đặt trên hệ thống và thiết lập chạy dưới danh tính **SYSTEM**. Tương tự service trước, trường `ImagePath` chứa lệnh PowerShell bị obfuscate qua nhiều tầng.
 
 Đối chiếu với các event logon quan sát được lúc trước: vào **07:57:08.294** — tức chỉ vài giây trước khi service được tạo — ghi nhận một phiên **network logon (Type 3)** thành công trên DC01 với tài khoản `SQLService` từ IP `10.0.0.154`. Attacker tiếp tục thực thi lệnh từ xa để cài đặt service độc hại thứ hai.
 
@@ -280,17 +280,17 @@ index="kerberoasted" earliest="10/16/2023:07:50:00" latest="10/16/2023:08:19:00"
 Vào **2023-10-16 07:57:12.633**, service được khởi chạy (PID 5084). Ngay sau đó vào **07:57:13.122**, một process PowerShell 32-bit (PID 8304) đóng vai trò như một C2 agent thực thi các câu lệnh:
 
 ```text
-[616] C:\Windows\System32\services.exe  [Service Control Manager]
+[616] C:\Windows\System32\services.exe  
   2023-10-16 07:57:12  SYSTEM  0x3e7
-  └── [5084] cmd.exe /b /c start /b /min powershell.exe -nop -w hidden -noni -c "..." [Obfuscated Empire Stager 2]
-        └── [8304] powershell.exe -noni -nop -w hidden -c ... [C2 Agent 2]
+  └── [5084] cmd.exe /b /c start /b /min powershell.exe -nop -w hidden -noni -c "..." 
+        └── [8304] powershell.exe -noni -nop -w hidden -c ... 
               2023-10-16 07:58:04  ├── [4124] cmd.exe /c "echo. | powershell get-host"
               2023-10-16 07:58:04  │   ├── [7904] cmd.exe /S /D /c" echo. "
               2023-10-16 07:58:04  │   └── [7804] powershell get-host
               2023-10-16 07:58:05  ├── [8504] cmd.exe /c whoami /groups
               2023-10-16 07:58:05  │   └── [7264] whoami /groups
-              2023-10-16 07:58:05  ├── [4492] powershell.exe -EncodedCommand ... [Empire Scriptblock]
-              2023-10-16 07:58:09  └── [8424] powershell.exe -EncodedCommand ... [Empire Scriptblock]
+              2023-10-16 07:58:05  ├── [4492] powershell.exe -EncodedCommand ... 
+              2023-10-16 07:58:09  └── [8424] powershell.exe -EncodedCommand ... 
 ```
 
 #### 5.4. Kết nối C2
