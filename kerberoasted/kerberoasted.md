@@ -19,8 +19,7 @@ Note: Your Domain Controller is configured to audit Kerberos Service Ticket Oper
 
 ## Kĩ thuật tấn công Kerberoast
 
-Kerberoast là kĩ thuật tấn công trong đó attacker gửi **TGS-REQ** (yêu cầu Service Ticket) tới hàng loạt tài khoản có gán thuộc tính **Service Principal Name (SPN)** — thường là các tài khoản service như SQL, IIS hoặc Exchange. KDC phản hồi bằng **TGS-REP** chứa Service Ticket được mã hóa bằng Kerberos long-term key, vốn được tạo ra từ password của chính service account đó. Thông thường, attacker sẽ yêu cầu Service Ticket được mã hóa bằng thuật toán yếu **RC4-HMAC**, sau đó tiến hành **crack offline** để thu được plaintext password của service account.
-
+Kerberoast là kĩ thuật tấn công trong đó attacker gửi **TGS-REQ** (yêu cầu Service Ticket) tới hàng loạt tài khoản có gán thuộc tính **Service Principal Name (SPN)** — thường là các tài khoản service như SQL, IIS hoặc Exchange, tuy nhiên bất kì tài khoản nào có thuộc tính SPN được thiết lập cũng có thể bị nhắm tới. KDC phản hồi bằng **TGS-REP** chứa Service Ticket được mã hóa bằng Kerberos long-term key được tạo ra từ password của chính account đó. Sau khi có được Service Ticket attacker tiến hành **crack offline** để thu được plaintext password của account. Thông thường, attacker sẽ yêu cầu Service Ticket được mã hóa bằng thuật toán yếu **RC4-HMAC** để giảm thời gian cần thiết cho việc crack.
 
 ## Điều tra
 
